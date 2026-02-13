@@ -1,0 +1,9 @@
+/* Smooth scrolling for menu links */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Fix content hidden behind fixed navbar */
+section {
+    scroll-margin-top: 80px;
+}
