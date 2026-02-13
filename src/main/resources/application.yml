@@ -4,9 +4,10 @@ spring:
 
   datasource:
     # Railway gives postgresql:// but Spring needs jdbc:postgresql://
-    url: ${SPRING_DATASOURCE_URL}
+    url: jdbc:postgresql://postgres:TpsmPQKyOZcoVnJCioNVZkrjyquyJhzi@postgres.railway.internal:5432/railway
     username: postgres
     password: TpsmPQKyOZcoVnJCioNVZkrjyquyJhzi
+    driver-class-name: org.postgresql.Driver
     hikari:
       connection-timeout: 20000
       maximum-pool-size: 5
