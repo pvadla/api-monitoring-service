@@ -4,7 +4,7 @@ spring:
 
   datasource:
     # Railway gives postgresql:// but Spring needs jdbc:postgresql://
-    url: jdbc:postgresql://postgres:TpsmPQKyOZcoVnJCioNVZkrjyquyJhzi@postgres.railway.internal:5432/railway
+    url: jdbc:postgresql://postgres:TpsmPQKyOZcoVnJCioNVZkrjyquyJhzi@yamanote.proxy.rlwy.net:39474/railway
     username: postgres
     password: TpsmPQKyOZcoVnJCioNVZkrjyquyJhzi
     driver-class-name: org.postgresql.Driver
