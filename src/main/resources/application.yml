@@ -1,20 +1,30 @@
-# Production defaults. For local development use: spring.profiles.active=local
-
 spring:
   application:
     name: APIMonitoring
 
-  # Production datasource (set SPRING_DATASOURCE_* env vars in deployment)
   datasource:
-    url: ${JDBC_DATABASE_URL}
+    # Railway gives postgresql:// but Spring needs jdbc:postgresql://
+    url: ${DATABASE_URL}
     username: ${PGUSER}
     password: ${PGPASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 5
 
-  # JPA / Hibernate for production
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update        # use 'update' not 'validate' until schema exists
     show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
 
 server:
   port: ${PORT:8080}
+
+logging:
+  level:
+    root: INFO
+    com.api.monitor: DEBUG
