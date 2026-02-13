@@ -6,13 +6,15 @@ spring:
 
   # Production datasource (set SPRING_DATASOURCE_* env vars in deployment)
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${DATABASE_URL}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
 
   # JPA / Hibernate for production
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+
+server:
+  port: ${PORT:8080}
