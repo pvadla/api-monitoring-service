@@ -1,5 +1,11 @@
+[phases.setup]
+nixPkgs = ["jdk17", "maven"]
+
 [phases.build]
 cmds = ["mvn clean package -DskipTests"]
 
 [start]
-cmd = "java -jar target/*.jar"
+cmd = "java -jar target/APIMonitoring-0.0.1-SNAPSHOT.jar"
+
+[cache]
+paths = ["/root/.m2"]
