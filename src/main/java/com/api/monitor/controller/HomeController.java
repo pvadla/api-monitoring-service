@@ -1,11 +1,15 @@
 package com.api.monitor.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 public class HomeController {
+
+    @Value("${GOOGLE_CLIENT_ID")
+    private String clientId;
 
     @GetMapping("/")
     public String home() {
@@ -20,7 +24,7 @@ public class HomeController {
     @GetMapping("/debug-env")
     @ResponseBody
     public String debugEnv() {
-        String clientId = System.getenv("GOOGLE_CLIENT_ID");
+        //String clientId = this.clientId;
         String profile = System.getenv("SPRING_PROFILES_ACTIVE");
         return "GOOGLE_CLIENT_ID: " + clientId + "<br>PROFILE: " + profile;
     }
