@@ -4,8 +4,8 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+            client-id: ${GOOGLE_CLIENT_ID:missing}
+            client-secret: ${GOOGLE_CLIENT_SECRET:missing}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL}

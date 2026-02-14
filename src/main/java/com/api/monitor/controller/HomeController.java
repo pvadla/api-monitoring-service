@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class HomeController {
 
-    @Value("${GOOGLE_CLIENT_ID")
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
 
     @GetMapping("/")
