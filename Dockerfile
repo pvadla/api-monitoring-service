@@ -18,6 +18,8 @@ WORKDIR /app
 COPY --from=build /app/target/APIMonitoring-0.0.1-SNAPSHOT.jar app.jar
 
 ENV SPRING_PROFILES_ACTIVE=prod
+ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
 
 # Railway sets PORT automatically
 EXPOSE 8080
