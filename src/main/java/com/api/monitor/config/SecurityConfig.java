@@ -18,7 +18,8 @@ public class SecurityConfig {
                     "/",
                     "/css/**",
                     "/js/**",
-                    "/actuator/health"
+                    "/actuator/health",
+                    "/debug-env"
                 ).permitAll()
                 // Everything else needs login
                 .anyRequest().authenticated()
