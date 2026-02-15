@@ -10,4 +10,4 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres.railway.internal:5432/railway
     username: ${PGUSER:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    password: ${PGPASSWORD}
