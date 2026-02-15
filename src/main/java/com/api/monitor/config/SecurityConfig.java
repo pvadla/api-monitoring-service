@@ -3,34 +3,55 @@ package com.api.monitor.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework
+    .security.web.SecurityFilterChain;
+
+import com.api
+    .monitor.service.CustomOAuth2UserService;
+
+import lombok.RequiredArgsConstructor;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final CustomOAuth2UserService
+        customOAuth2UserService;
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http) throws Exception {
         http
+            // Disable CSRF
+            .csrf(AbstractHttpConfigurer::disable)
+
+            // Allow H2 frames
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.disable())
+            )
+
             .authorizeHttpRequests(auth -> auth
-                // Public pages
+                // ✅ Simple string matchers - no import needed
                 .requestMatchers(
                     "/",
                     "/css/**",
                     "/js/**",
-                    "/actuator/health",
+                    "/actuator/**",
                     "/debug-env",
-                    "/debug-env1"
+                    "/h2-console",
+                    "/h2-console/**",
+                    "/h2-console/login.do/**"
                 ).permitAll()
-                // Everything else needs login
                 .anyRequest().authenticated()
             )
-            // Google SSO
             .oauth2Login(oauth -> oauth
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(customOAuth2UserService)
+                )
                 .defaultSuccessUrl("/dashboard", true)
                 .failureUrl("/?error=true")
             )
-            // Logout
             .logout(logout -> logout
                 .logoutSuccessUrl("/")
                 .permitAll()

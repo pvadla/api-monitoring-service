@@ -5,7 +5,7 @@ nixPkgs = ["jdk17", "maven"]
 cmds = ["mvn clean package -DskipTests"]
 
 [start]
-cmd = "java -jar target/APIMonitoring-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod"
+cmd = "java -Dspring.profiles.active=prod -jar target/APIMonitoring-0.0.1-SNAPSHOT.jar"
 
 [cache]
 paths = ["/root/.m2"]
