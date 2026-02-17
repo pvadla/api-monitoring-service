@@ -40,6 +40,9 @@ public class Endpoint {
     @Column(name = "is_up")
     private Boolean isUp = true;
 
+    @Column(name = "failure_count")
+    private Integer failureCount = 0;
+
     @Column(name = "last_checked")
     private LocalDateTime lastChecked;
 

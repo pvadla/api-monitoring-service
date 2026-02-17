@@ -139,7 +139,65 @@
             </div>
         </div>
 
-        <!-- Empty State -->
+        <!-- Endpoints List (shown when endpoints exist) -->
+        <div th:if="${not #lists.isEmpty(endpoints)}">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Your Endpoints</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Status</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Name</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">URL</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Check Every</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Last Checked</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="ep : ${endpoints}"
+                            class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <span th:if="${ep.isUp}" class="inline-flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
+                                    <span class="text-green-600 font-medium">UP</span>
+                                </span>
+                                <span th:unless="${ep.isUp}" class="inline-flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                                    <span class="text-red-600 font-medium">DOWN</span>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-medium text-gray-900" th:text="${ep.name}">My API</td>
+                            <td class="px-6 py-4">
+                                <a th:href="${ep.url}" target="_blank"
+                                    class="text-blue-600 hover:underline truncate max-w-xs block"
+                                    th:text="${ep.url}">https://...</a>
+                            </td>
+                            <td class="px-6 py-4 text-gray-500" th:text="${ep.checkInterval} + ' min'">5 min</td>
+                            <td class="px-6 py-4 text-gray-400"
+                                th:text="${ep.lastChecked != null ? #temporals.format(ep.lastChecked, 'MMM d, HH:mm') : 'Not yet'}">
+                                Never
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Empty State (shown when no endpoints) -->
+        <div th:if="${#lists.isEmpty(endpoints)}"
+            class="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center">
+            <div class="text-6xl mb-4">🚀</div>
+            <h2 class="text-2xl font-bold text-gray-900">Add Your First API Endpoint</h2>
+            <p class="text-gray-400 mt-3 max-w-md mx-auto">
+                Start monitoring your API in 60 seconds. Get instant alerts when it goes down.
+            </p>
+            <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="mt-8 bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700
+                   font-medium shadow-md inline-flex items-center space-x-2">
+                <span>+</span><span>Add Your First Endpoint</span>
+            </button>
+        </div>
+
+
         <div class="bg-white rounded-xl shadow-sm
                 border border-gray-100 p-16 text-center">
             <div class="text-6xl mb-4">🚀</div>
