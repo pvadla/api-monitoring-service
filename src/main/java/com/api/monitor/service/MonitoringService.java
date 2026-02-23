@@ -10,6 +10,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import com.api.monitor.entity.Endpoint;
+import com.api.monitor.entity.EndpointCheck;
+import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class MonitoringService {
 
     private final EndpointRepository endpointRepository;
+    private final EndpointCheckRepository endpointCheckRepository;
     private final WebClient webClient;
 
     // ─────────────────────────────────────────────────────
@@ -60,66 +63,75 @@ public class MonitoringService {
     // ─────────────────────────────────────────────────────
     private void checkEndpoint(Endpoint ep) {
         boolean wasUp = Boolean.TRUE.equals(ep.getIsUp());
-        boolean isNowUp = performHttpCheck(ep.getUrl());
+
+        // Perform HTTP check and capture timing + status
+        CheckResult result = performHttpCheck(ep.getUrl());
 
         // Update failure count
-        if (isNowUp) {
+        if (result.isUp()) {
             ep.setFailureCount(0);
         } else {
             ep.setFailureCount(ep.getFailureCount() == null ? 1 : ep.getFailureCount() + 1);
         }
 
-        ep.setIsUp(isNowUp);
+        ep.setIsUp(result.isUp());
         ep.setLastChecked(LocalDateTime.now());
         endpointRepository.save(ep);
 
+        // ── Save check record for history graph ──────────
+        EndpointCheck check = new EndpointCheck();
+        check.setEndpoint(ep);
+        check.setCheckedAt(ep.getLastChecked());
+        check.setIsUp(result.isUp());
+        check.setResponseTimeMs(result.responseTimeMs());
+        check.setStatusCode(result.statusCode());
+        check.setErrorMessage(result.errorMessage());
+        endpointCheckRepository.save(check);
+
         // ── Incident detection (Step 7) ──────────────────
         // Alert on 2nd consecutive failure to avoid flapping alerts.
-        if (wasUp && !isNowUp && ep.getFailureCount() >= 2) {
+        if (wasUp && !result.isUp() && ep.getFailureCount() >= 2) {
             handleDownAlert(ep);
-        } else if (!wasUp && isNowUp) {
+        } else if (!wasUp && result.isUp()) {
             handleRecoveryAlert(ep);
         }
     }
 
     // ─────────────────────────────────────────────────────
-    //  HTTP check — returns true if status < 400
+    //  HTTP check — returns CheckResult with timing info
     //  Uses WebClient with a 10-second timeout.
     //  4xx/5xx → DOWN, exception (timeout, DNS fail) → DOWN
     // ─────────────────────────────────────────────────────
-    private boolean performHttpCheck(String url) {
+    private CheckResult performHttpCheck(String url) {
+        long start = System.currentTimeMillis();
         try {
-            int status = webClient.get()
+            var response = webClient.get()
                     .uri(url)
                     .retrieve()
-                    // treat 4xx/5xx as errors so they fall into onStatus below
                     .onStatus(
                             httpStatus -> httpStatus.is4xxClientError()
                                     || httpStatus.is5xxServerError(),
-                            clientResponse -> {
-                                log.warn("Endpoint returned error status: {} for {}",
-                                        clientResponse.statusCode().value(), url);
-                                // Returning empty signals "error" but we still capture status below
-                                return clientResponse.createException();
-                            }
+                            clientResponse -> clientResponse.createException()
                     )
                     .toBodilessEntity()
                     .timeout(Duration.ofSeconds(10))
-                    .map(response -> response.getStatusCode().value())
                     .block();
 
-            log.debug("✅ {} → HTTP {}", url, status);
-            return true; // Only reaches here on 2xx/3xx
+            long elapsed = System.currentTimeMillis() - start;
+            int statusCode = response != null ? response.getStatusCode().value() : 0;
+
+            log.debug("✅ {} → HTTP {} ({}ms)", url, statusCode, elapsed);
+            return new CheckResult(true, elapsed, statusCode, null);
 
         } catch (WebClientResponseException ex) {
-            // 4xx / 5xx — endpoint returned a real HTTP error
+            long elapsed = System.currentTimeMillis() - start;
             log.warn("⚠️  {} → HTTP {} ({})", url, ex.getStatusCode().value(), ex.getStatusText());
-            return false;
+            return new CheckResult(false, elapsed, ex.getStatusCode().value(), ex.getStatusText());
 
         } catch (Exception ex) {
-            // Timeout, DNS failure, connection refused, etc.
+            long elapsed = System.currentTimeMillis() - start;
             log.warn("🔴 {} → FAILED ({})", url, ex.getMessage());
-            return false;
+            return new CheckResult(false, elapsed, null, ex.getMessage());
         }
     }
 
@@ -137,4 +149,13 @@ public class MonitoringService {
                 ep.getName(), ep.getUrl());
         // TODO Step 8: emailService.sendRecoveryAlert(ep);
     }
+
+    // ─────────────────────────────────────────────────────
+    //  Simple record to carry check results around
+    // ─────────────────────────────────────────────────────
+    private record CheckResult(
+            boolean isUp,
+            long responseTimeMs,
+            Integer statusCode,
+            String errorMessage) {}
 }
