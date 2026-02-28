@@ -1,7 +1,9 @@
 package com.api.monitor.service;
 
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.scheduling.annotation.Scheduled;
@@ -11,8 +13,11 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.EndpointCheck;
+import com.api.monitor.entity.Incident;
+import com.api.monitor.entity.Incident.IncidentStatus;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
+import com.api.monitor.repository.IncidentRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +29,7 @@ public class MonitoringService {
 
     private final EndpointRepository endpointRepository;
     private final EndpointCheckRepository endpointCheckRepository;
+    private final IncidentRepository incidentRepository;
     private final WebClient webClient;
 
     // ─────────────────────────────────────────────────────
@@ -52,7 +58,9 @@ public class MonitoringService {
     //  Due check: has enough time passed since last check?
     // ─────────────────────────────────────────────────────
     private boolean isDue(Endpoint ep) {
-        if (ep.getLastChecked() == null) return true;
+        if (ep.getLastChecked() == null) {
+            return true;
+        }
         LocalDateTime nextCheck = ep.getLastChecked()
                 .plusMinutes(ep.getCheckInterval());
         return LocalDateTime.now().isAfter(nextCheck);
@@ -88,11 +96,15 @@ public class MonitoringService {
         check.setErrorMessage(result.errorMessage());
         endpointCheckRepository.save(check);
 
-        // ── Incident detection (Step 7) ──────────────────
-        // Alert on 2nd consecutive failure to avoid flapping alerts.
-        if (wasUp && !result.isUp() && ep.getFailureCount() >= 2) {
-            handleDownAlert(ep);
-        } else if (!wasUp && result.isUp()) {
+        // ── Auto-incident: create on failure, resolve on recovery ──
+        if (!result.isUp() && ep.getFailureCount() >= 2) {
+            boolean hasOpenIncident = incidentRepository
+                    .findFirstByEndpointAndResolvedAtIsNullOrderByStartedAtDesc(ep)
+                    .isPresent();
+            if (!hasOpenIncident) {
+                handleDownAlert(ep, result);
+            }
+        } else if (wasUp && result.isUp()) {
             handleRecoveryAlert(ep);
         }
     }
@@ -110,7 +122,7 @@ public class MonitoringService {
                     .retrieve()
                     .onStatus(
                             httpStatus -> httpStatus.is4xxClientError()
-                                    || httpStatus.is5xxServerError(),
+                            || httpStatus.is5xxServerError(),
                             clientResponse -> clientResponse.createException()
                     )
                     .toBodilessEntity()
@@ -121,41 +133,96 @@ public class MonitoringService {
             int statusCode = response != null ? response.getStatusCode().value() : 0;
 
             log.debug("✅ {} → HTTP {} ({}ms)", url, statusCode, elapsed);
-            return new CheckResult(true, elapsed, statusCode, null);
+            return new CheckResult(true, elapsed, statusCode, null, null);
 
         } catch (WebClientResponseException ex) {
             long elapsed = System.currentTimeMillis() - start;
-            log.warn("⚠️  {} → HTTP {} ({})", url, ex.getStatusCode().value(), ex.getStatusText());
-            return new CheckResult(false, elapsed, ex.getStatusCode().value(), ex.getStatusText());
+            int code = ex.getStatusCode().value();
+            String reason = code >= 500 ? "HTTP 5xx" : "HTTP 4xx";
+            String msg = code + " " + ex.getStatusText();
+            log.warn("⚠️  {} → HTTP {} ({})", url, code, ex.getStatusText());
+            return new CheckResult(false, elapsed, code, msg, reason);
 
         } catch (Exception ex) {
             long elapsed = System.currentTimeMillis() - start;
-            log.warn("🔴 {} → FAILED ({})", url, ex.getMessage());
-            return new CheckResult(false, elapsed, null, ex.getMessage());
+            String reason = classifyFailureReason(ex);
+            String errMsg = ex.getMessage();
+            log.warn("🔴 {} → FAILED ({}): {}", url, reason, errMsg);
+            return new CheckResult(false, elapsed, null, errMsg, reason);
         }
     }
 
+    private static String classifyFailureReason(Throwable ex) {
+        if (ex == null) {
+            return "Unknown";
+        }
+        if (ex instanceof UnknownHostException) {
+            return "DNS failure";
+        }
+        String raw = ex.getMessage();
+        String msg = raw != null ? raw.toLowerCase() : "";
+        if (msg.contains("timeout") || msg.contains("timed out")) {
+            return "Timeout";
+        }
+        if (msg.contains("connection refused") || msg.contains("connection reset")) {
+            return "Connection refused";
+        }
+        if (msg.contains("name or service not known") || msg.contains("nodename nor servname")) {
+            return "DNS failure";
+        }
+        if (msg.contains("connection") && msg.contains("refused")) {
+            return "Connection refused";
+        }
+        return ex.getClass().getSimpleName();
+    }
+
     // ─────────────────────────────────────────────────────
-    //  Incident events — Step 8 will plug email in here
+    //  Auto-incident: create on failure, resolve on recovery
     // ─────────────────────────────────────────────────────
-    private void handleDownAlert(Endpoint ep) {
-        log.warn("🔴 INCIDENT: '{}' ({}) is DOWN [failures: {}]",
-                ep.getName(), ep.getUrl(), ep.getFailureCount());
-        // TODO Step 8: emailService.sendDownAlert(ep);
+    private void handleDownAlert(Endpoint ep, CheckResult result) {
+        Incident incident = new Incident();
+        incident.setUser(ep.getUser());
+        incident.setEndpoint(ep);
+        incident.setAutoGenerated(true);
+        incident.setTitle("Endpoint down: " + ep.getName());
+        incident.setDescription(result.errorMessage() != null ? result.errorMessage() : result.failureReason());
+        incident.setFailureReason(result.failureReason());
+        incident.setStatus(IncidentStatus.INVESTIGATING);
+        incident.setStartedAt(LocalDateTime.now());
+        incidentRepository.save(incident);
+        log.info("Incident created: {}", incident);
+
+        log.warn("🔴 INCIDENT created: '{}' ({}) — {} [failures: {}]. Incident#{}",
+                ep.getName(), ep.getUrl(), result.failureReason(), ep.getFailureCount(), incident.getId());
+        // TODO: alertService.sendDownAlert(ep, incident);
     }
 
     private void handleRecoveryAlert(Endpoint ep) {
-        log.info("🟢 RECOVERY: '{}' ({}) is back UP",
-                ep.getName(), ep.getUrl());
-        // TODO Step 8: emailService.sendRecoveryAlert(ep);
+        incidentRepository
+                .findFirstByEndpointAndResolvedAtIsNullOrderByStartedAtDesc(ep)
+                .ifPresent(incident -> {
+                    LocalDateTime now = LocalDateTime.now();
+                    incident.setResolvedAt(now);
+                    incident.setStatus(IncidentStatus.RESOLVED);
+                    long durationMinutes = ChronoUnit.MINUTES.between(incident.getStartedAt(), now);
+                    incident.setDowntimeDurationMinutes(durationMinutes);
+                    incidentRepository.save(incident);
+
+                    log.info("🟢 INCIDENT resolved: '{}' ({}) — downtime {} minutes. Incident#{}",
+                            ep.getName(), ep.getUrl(), durationMinutes, incident.getId());
+                    // TODO: alertService.sendRecoveryAlert(ep, incident);
+                });
     }
 
     // ─────────────────────────────────────────────────────
-    //  Simple record to carry check results around
+    //  Check result with failure classification for incidents
     // ─────────────────────────────────────────────────────
-    private record CheckResult(
+    static record CheckResult(
             boolean isUp,
             long responseTimeMs,
             Integer statusCode,
-            String errorMessage) {}
+            String errorMessage,
+            String failureReason) {
+
+    }
 }

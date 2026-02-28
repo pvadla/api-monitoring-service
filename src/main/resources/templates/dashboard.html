@@ -31,11 +31,14 @@
                       border-blue-600 pb-1">
                     Dashboard
                 </a>
-                <a href="#" class="text-gray-500 hover:text-blue-600">
-                    Endpoints
-                </a>
-                <a href="#" class="text-gray-500 hover:text-blue-600">
+                <a href="/incidents" class="text-gray-500 hover:text-blue-600">
                     Incidents
+                </a>
+                <a th:if="${user.statusSlug}" th:href="@{'/status/' + ${user.statusSlug}}" target="_blank" class="text-gray-500 hover:text-blue-600">
+                    Status page
+                </a>
+                <a href="/settings/status" class="text-gray-500 hover:text-blue-600">
+                    Customize status
                 </a>
             </div>
 
@@ -150,6 +153,7 @@
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Name</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">URL</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Check Every</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">On status page</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Last Checked</th>
                         </tr>
                     </thead>
@@ -177,6 +181,14 @@
                                     th:text="${ep.url}">https://...</a>
                             </td>
                             <td class="px-6 py-4 text-gray-500" th:text="${ep.checkInterval} + ' min'">5 min</td>
+                            <td class="px-6 py-4">
+                                <form th:action="@{'/endpoints/' + ${ep.id} + '/toggle-status-visibility'}" method="post" class="inline">
+                                    <button type="submit" class="text-sm" th:title="${ep.showOnStatusPage != null && ep.showOnStatusPage} ? 'Hide from status page' : 'Show on status page'">
+                                        <span th:if="${ep.showOnStatusPage != null && ep.showOnStatusPage}" class="text-green-600">✓ Shown</span>
+                                        <span th:unless="${ep.showOnStatusPage != null && ep.showOnStatusPage}" class="text-gray-400">Hidden</span>
+                                    </button>
+                                </form>
+                            </td>
                             <td class="px-6 py-4 text-gray-400"
                                 th:text="${ep.lastChecked != null ? #temporals.format(ep.lastChecked, 'MMM d, HH:mm') : 'Not yet'}">
                                 Never
@@ -261,6 +273,7 @@
                                focus:outline-none
                                focus:ring-2
                                focus:ring-blue-500">
+                        <option value="1">1 minutes</option>
                         <option value="5">5 minutes</option>
                         <option value="10">10 minutes</option>
                         <option value="15">15 minutes</option>

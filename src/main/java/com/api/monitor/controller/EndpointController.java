@@ -119,6 +119,23 @@ public class EndpointController {
         return "redirect:/endpoints/" + id;
     }
 
+    /** Toggle whether this endpoint is shown on the public status page. */
+    @PostMapping("/{id}/toggle-status-visibility")
+    public String toggleStatusVisibility(
+            @AuthenticationPrincipal OAuth2User principal,
+            @PathVariable Long id,
+            RedirectAttributes redirectAttributes) {
+
+        Endpoint endpoint = getOwnedEndpoint(id, principal);
+        boolean currentlyShown = endpoint.getShowOnStatusPage() != null && endpoint.getShowOnStatusPage();
+        endpoint.setShowOnStatusPage(!currentlyShown);
+        endpointRepository.save(endpoint);
+
+        redirectAttributes.addFlashAttribute("success",
+                endpoint.getShowOnStatusPage() ? "Shown on status page." : "Hidden from status page.");
+        return "redirect:/dashboard";
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
     private User getUser(OAuth2User principal) {
         String email = principal.getAttribute("email");

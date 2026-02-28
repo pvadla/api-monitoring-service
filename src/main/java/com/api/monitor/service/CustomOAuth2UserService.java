@@ -29,6 +29,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setEmail(email);
         user.setName(name);
         user.setPicture(picture);
+        if (user.getStatusSlug() == null || user.getStatusSlug().isBlank()) {
+            String slug = email != null && email.contains("@")
+                    ? email.substring(0, email.indexOf("@")).toLowerCase().replaceAll("[^a-z0-9]", "-").replaceAll("-+", "-")
+                    : "user";
+            if (slug.isBlank()) slug = "user";
+            user.setStatusSlug(slug);
+        }
         userRepository.save(user);
 
         return oAuth2User;

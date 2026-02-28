@@ -27,6 +27,16 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Status page (public at /status/{statusSlug})
+    @Column(name = "status_slug", unique = true)
+    private String statusSlug;
+
+    @Column(name = "status_page_title")
+    private String statusPageTitle;
+
+    @Column(name = "status_page_logo_url", length = 1024)
+    private String statusPageLogoUrl;
+
     // Setters used by CustomOAuth2UserService (explicit for reliability with Lombok)
     public void setEmail(String email) {
         this.email = email;

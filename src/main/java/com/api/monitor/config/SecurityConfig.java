@@ -41,7 +41,8 @@ public class SecurityConfig {
                     "/debug-env",
                     "/h2-console",
                     "/h2-console/**",
-                    "/h2-console/login.do/**"
+                    "/h2-console/login.do/**",
+                    "/status/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

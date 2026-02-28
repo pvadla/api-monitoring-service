@@ -48,4 +48,8 @@ public class Endpoint {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Whether to show this endpoint on the public status page. */
+    @Column(name = "show_on_status_page")
+    private Boolean showOnStatusPage = true;
 }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${pageTitle}">Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <main class="max-w-3xl mx-auto px-6 py-12">
+
+        <!-- Header: logo + title -->
+        <header class="text-center mb-10">
+            <div th:if="${logoUrl}" class="mb-4">
+                <img th:src="${logoUrl}" alt="Logo" class="h-12 mx-auto object-contain" />
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900" th:text="${pageTitle}">Status</h1>
+            <p class="text-gray-500 mt-1">Service status and incident history</p>
+        </header>
+
+        <!-- Overall status -->
+        <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+            <div class="flex items-center gap-3">
+                <span th:if="${statusKind == 'all-up'}" class="w-4 h-4 rounded-full bg-green-500"></span>
+                <span th:if="${statusKind == 'issues'}" class="w-4 h-4 rounded-full bg-amber-500"></span>
+                <span th:if="${statusKind == 'none'}" class="w-4 h-4 rounded-full bg-gray-300"></span>
+                <span class="text-lg font-semibold text-gray-900" th:text="${overallStatusLabel}">All Systems Operational</span>
+            </div>
+        </section>
+
+        <!-- Endpoints (only those chosen to show) -->
+        <section class="mb-10">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Components</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <ul class="divide-y divide-gray-100">
+                    <li th:each="ep : ${endpoints}" class="px-6 py-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span th:if="${ep.isUp}" class="w-3 h-3 rounded-full bg-green-500"></span>
+                            <span th:unless="${ep.isUp}" class="w-3 h-3 rounded-full bg-red-500"></span>
+                            <span class="font-medium text-gray-900" th:text="${ep.name}">API Name</span>
+                        </div>
+                        <span th:if="${ep.isUp}" class="text-green-600 font-medium">Operational</span>
+                        <span th:unless="${ep.isUp}" class="text-red-600 font-medium">Down</span>
+                    </li>
+                    <li th:if="${#lists.isEmpty(endpoints)}" class="px-6 py-8 text-center text-gray-500">
+                        No components to display.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Incident history -->
+        <section>
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Incident History</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <ul class="divide-y divide-gray-100">
+                    <li th:each="inc : ${incidents}" class="px-6 py-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <h3 class="font-semibold text-gray-900" th:text="${inc.title}">Incident title</h3>
+                                <p th:if="${inc.failureReason}" class="text-gray-600 text-sm mt-1">Reason: <span th:text="${inc.failureReason}">—</span></p>
+                                <p th:if="${inc.description}" class="text-gray-600 text-sm mt-1" th:text="${inc.description}">Description</p>
+                                <p class="text-gray-400 text-xs mt-2">
+                                    <span th:text="${inc.startedAt}">Started</span>
+                                    <span th:if="${inc.resolvedAt}"> – Resolved <span th:text="${inc.resolvedAt}">...</span></span>
+                                    <span th:if="${inc.downtimeDurationMinutes != null}"> · Downtime: <span th:text="${inc.downtimeDurationMinutes}">0</span> min</span>
+                                </p>
+                            </div>
+                            <span th:if="${inc.resolvedAt != null}" class="text-green-600 text-sm font-medium" th:text="${inc.status}">Status</span>
+                            <span th:unless="${inc.resolvedAt != null}" class="text-amber-600 text-sm font-medium" th:text="${inc.status}">Status</span>
+                        </div>
+                    </li>
+                    <li th:if="${#lists.isEmpty(incidents)}" class="px-6 py-8 text-center text-gray-500">
+                        No incidents reported.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <p class="text-center text-gray-400 text-sm mt-10">
+            Powered by APIWatch
+        </p>
+    </main>
+
+</body>
+</html>

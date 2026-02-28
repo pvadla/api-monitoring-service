@@ -18,4 +18,7 @@ public interface EndpointRepository
 
     // Count UP endpoints for a user
     long countByUserAndIsUp(User user, Boolean isUp);
+
+    // Endpoints to show on public status page
+    List<Endpoint> findByUserAndShowOnStatusPageTrue(User user);
 }

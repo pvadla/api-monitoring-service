@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Status Page Settings - APIWatch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+    <nav class="bg-white shadow-sm border-b border-gray-100">
+        <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/dashboard" class="text-blue-600 font-medium hover:underline">← Dashboard</a>
+            <span class="text-gray-500 text-sm">Status page customization</span>
+        </div>
+    </nav>
+
+    <main class="max-w-2xl mx-auto px-6 py-10">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Status Page Settings</h1>
+        <p class="text-gray-500 mb-8">Customize your public status page (title, logo, and which endpoints are shown).</p>
+
+        <div th:if="${success}" class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <span th:text="${success}">Saved.</span>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <form th:action="@{/settings/status}" method="post" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status page URL slug</label>
+                    <p class="text-gray-500 text-xs mb-2">Your status page will be at: /status/<strong th:text="${statusSlug} ?: 'your-slug'">your-slug</strong></p>
+                    <input type="text" name="statusSlug" th:value="${statusSlug}"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g. mycompany" pattern="[a-z0-9-]+" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Page title</label>
+                    <input type="text" name="statusPageTitle" th:value="${statusPageTitle}"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g. My Company Status" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
+                    <input type="url" name="statusPageLogoUrl" th:value="${statusPageLogoUrl}"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="https://example.com/logo.png" />
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Save settings
+                </button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Embed widget</h2>
+            <p class="text-gray-500 text-sm mb-4">Add a status badge to your own website. Use this snippet (replace with your full domain):</p>
+            <pre class="bg-gray-100 rounded-lg p-4 text-sm overflow-x-auto"><code>&lt;script src="https://your-domain.com/status/<span th:text="${user.statusSlug} ?: 'your-slug'">your-slug</span>/embed.js"&gt;&lt;/script&gt;</code></pre>
+            <p class="text-gray-500 text-xs mt-2" th:if="${user.statusSlug}">Or <a th:href="@{'/status/' + user.statusSlug}" target="_blank" class="text-blue-600 hover:underline">view your status page</a>.</p>
+            <p th:unless="${user.statusSlug}" class="text-amber-700 text-sm mt-2">Set a <strong>Status page URL slug</strong> above and save to get your public status page and embed code.</p>
+        </div>
+    </main>
+
+</body>
+</html>
