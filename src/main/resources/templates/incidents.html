@@ -17,31 +17,7 @@
 
     <main class="max-w-4xl mx-auto px-6 py-10">
         <h1 class="text-2xl font-bold text-gray-900 mb-2">Incidents</h1>
-        <p class="text-gray-500 mb-8">Create and manage incidents that appear on your public status page.</p>
-
-        <div th:if="${success}" class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-            <span th:text="${success}">Saved.</span>
-        </div>
-
-        <!-- Add incident -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Report new incident</h2>
-            <form th:action="@{/incidents/add}" method="post" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                    <input type="text" name="title" required placeholder="e.g. API latency increased"
-                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
-                    <textarea name="description" rows="2" placeholder="What happened?"
-                              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-                <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium">
-                    Create incident
-                </button>
-            </form>
-        </div>
+        <p class="text-gray-500 mb-8">Incidents are automatically detected by APIWatch when your endpoints go down.</p>
 
         <!-- List -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -60,14 +36,11 @@
                         <div class="flex items-center gap-2">
                             <span th:class="${inc.status.name() == 'RESOLVED'} ? 'text-green-600 text-sm font-medium' : 'text-amber-600 text-sm font-medium'"
                                   th:text="${inc.status}">Status</span>
-                            <form th:if="${inc.status.name() != 'RESOLVED'}" th:action="@{'/incidents/' + ${inc.id} + '/resolve'}" method="post" class="inline">
-                                <button type="submit" class="text-blue-600 text-sm hover:underline">Resolve</button>
-                            </form>
                         </div>
                     </div>
                 </li>
                 <li th:if="${#lists.isEmpty(incidents)}" class="px-6 py-12 text-center text-gray-500">
-                    No incidents yet.
+                    No incidents yet. APIWatch will automatically log incidents when your endpoints go down. It automatically sets the incidents to resolved status if the end point is back up and running.
                 </li>
             </ul>
         </div>

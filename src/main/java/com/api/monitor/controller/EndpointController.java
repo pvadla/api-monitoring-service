@@ -89,6 +89,26 @@ public class EndpointController {
         return "endpoint-detail";
     }
 
+    // ─── Edit (update) ──────────────────────────────────────────────────────
+    @PostMapping("/{id}/edit")
+    public String edit(
+            @AuthenticationPrincipal OAuth2User principal,
+            @PathVariable Long id,
+            @RequestParam String name,
+            @RequestParam String url,
+            @RequestParam Integer checkInterval,
+            RedirectAttributes redirectAttributes) {
+
+        Endpoint endpoint = getOwnedEndpoint(id, principal);
+        endpoint.setName(name.trim());
+        endpoint.setUrl(url.trim());
+        endpoint.setCheckInterval(checkInterval);
+        endpointRepository.save(endpoint);
+
+        redirectAttributes.addFlashAttribute("success", "Endpoint updated.");
+        return "redirect:/endpoints/" + id;
+    }
+
     // ─── Delete ─────────────────────────────────────────────────────────────
     @PostMapping("/{id}/delete")
     public String delete(

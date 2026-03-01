@@ -59,8 +59,7 @@
             <!-- Show if logged in -->
             <div sec:authorize="isAuthenticated()"
                  class="flex items-center space-x-3">
-                <span class="text-gray-600"
-                      sec:authentication="name">Username</span>
+                <span class="text-gray-600" th:text="${userDisplayName}">User</span>
                 <a th:href="@{/dashboard}"
                    class="bg-blue-600 text-white px-5 py-2
                           rounded-lg hover:bg-blue-700 font-medium">

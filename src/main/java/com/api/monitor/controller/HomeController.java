@@ -25,7 +25,11 @@ public class HomeController {
     private final EndpointRepository endpointRepository;
 
     @GetMapping("/")
-    public String home() {
+    public String home(@AuthenticationPrincipal OAuth2User principal, Model model) {
+        if (principal != null) {
+            String displayName = principal.getAttribute("name");
+            model.addAttribute("userDisplayName", displayName != null ? displayName : "User");
+        }
         return "index";  // loads index.html
     }
 
