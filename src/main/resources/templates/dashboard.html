@@ -37,9 +37,9 @@
                 <a th:if="${user.statusSlug}" th:href="@{'/status/' + ${user.statusSlug}}" target="_blank" class="text-gray-500 hover:text-blue-600">
                     Status page
                 </a>
-                <!-- <a href="/settings/status" class="text-gray-500 hover:text-blue-600">
-                    Customize status
-                </a> -->
+                <a href="/settings/profile" class="text-gray-500 hover:text-blue-600">
+                    Profile
+                </a>
             </div>
 
             <!-- User Info -->
@@ -155,10 +155,15 @@
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Check Every</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">On status page</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Last Checked</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium w-28">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="ep : ${endpoints}"
+                            th:data-id="${ep.id}"
+                            th:data-name="${ep.name}"
+                            th:data-url="${ep.url}"
+                            th:data-interval="${ep.checkInterval}"
                             class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4">
                                 <span th:if="${ep.isUp}" class="inline-flex items-center space-x-2">
@@ -192,6 +197,18 @@
                             <td class="px-6 py-4 text-gray-400"
                                 th:text="${ep.lastChecked != null ? #temporals.format(ep.lastChecked, 'MMM d, HH:mm') : 'Not yet'}">
                                 Never
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-1">
+                                    <a th:href="@{'/endpoints/' + ${ep.id}}" title="View details" class="inline-block p-2 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700">&#8505;</a>
+                                    <button type="button" onclick="openEditModal(this.closest('tr'))" title="Edit" class="p-2 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700" th:attr="title='Edit'">&#9998;</button>
+                                    <form th:action="@{'/endpoints/' + ${ep.id} + '/toggle'}" method="post" class="inline">
+                                        <button type="submit" th:title="${ep.isActive} ? 'Pause' : 'Resume'" class="p-2 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-gray-700" th:attr="title=${ep.isActive} ? 'Pause' : 'Resume'"><span th:text="${ep.isActive} ? '&#9208;' : '&#9654;'">&#9208;</span></button>
+                                    </form>
+                                    <form th:action="@{'/endpoints/' + ${ep.id} + '/delete'}" method="post" class="inline" onsubmit="return confirm('Delete this endpoint? This cannot be undone.');">
+                                        <button type="submit" title="Delete" class="p-2 rounded-lg text-gray-500 hover:bg-red-100 hover:text-red-600" th:attr="title='Delete'">&#128465;</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -297,6 +314,55 @@
             </form>
         </div>
     </div>
+
+    <!-- ════════════════════════════════════ -->
+    <!--  EDIT ENDPOINT MODAL                  -->
+    <!-- ════════════════════════════════════ -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Edit Endpoint</h2>
+                <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <form id="editForm" method="post" action="">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                    <input type="text" id="editName" name="name" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">URL</label>
+                    <input type="url" id="editUrl" name="url" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Check Every</label>
+                    <select id="editInterval" name="checkInterval" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                        <option value="1">1 minute</option>
+                        <option value="5">5 minutes</option>
+                        <option value="10">10 minutes</option>
+                        <option value="15">15 minutes</option>
+                    </select>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium">Save</button>
+                    <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" class="flex-1 border border-gray-300 text-gray-600 py-3 rounded-lg hover:bg-gray-50 font-medium">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEditModal(row) {
+            var id = row.getAttribute('data-id');
+            var name = row.getAttribute('data-name');
+            var url = row.getAttribute('data-url');
+            var interval = row.getAttribute('data-interval');
+            document.getElementById('editForm').action = '/endpoints/' + id + '/edit';
+            document.getElementById('editName').value = name || '';
+            document.getElementById('editUrl').value = url || '';
+            document.getElementById('editInterval').value = interval || '5';
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+    </script>
 
 </body>
 

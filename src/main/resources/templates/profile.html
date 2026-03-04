@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile - APIWatch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+    <nav class="bg-white shadow-sm border-b border-gray-100">
+        <div class="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/dashboard" class="text-blue-600 font-medium hover:underline">← Dashboard</a>
+            <span class="text-gray-500 text-sm">Profile</span>
+        </div>
+    </nav>
+
+    <main class="max-w-2xl mx-auto px-6 py-10">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Profile</h1>
+        <p class="text-gray-500 mb-8">Update your display name and notification preferences.</p>
+
+        <div th:if="${success}" class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <span th:text="${success}">Saved.</span>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <form th:action="@{/settings/profile}" method="post" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Profile picture</label>
+                    <div class="mt-1" th:if="${user.picture}">
+                        <img th:src="${user.picture}" alt="Profile" class="w-16 h-16 rounded-full border-2 border-gray-200 object-cover" />
+                    </div>
+                    <p class="text-gray-400 text-xs mt-1">From your Google account (not editable here).</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input type="text" name="name" th:value="${user.name}"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Your name" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="text" th:value="${user.email}" readonly
+                           class="w-full border border-gray-200 rounded-lg px-4 py-2 bg-gray-50 text-gray-600 cursor-not-allowed"
+                           aria-readonly="true" />
+                    <p class="text-gray-400 text-xs mt-1">From your Google account (read-only).</p>
+                </div>
+                <div class="border-t border-gray-100 pt-5">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-3">Notification preferences</h2>
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="notifyOnEndpointDown" value="true"
+                                   th:checked="${user.notifyOnEndpointDown != null && user.notifyOnEndpointDown}"
+                                   class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                            <span class="text-gray-700">Email me when an endpoint goes down</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="notifyOnEndpointRecovery" value="true"
+                                   th:checked="${user.notifyOnEndpointRecovery != null && user.notifyOnEndpointRecovery}"
+                                   class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                            <span class="text-gray-700">Email me when an endpoint recovers</span>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Save changes
+                </button>
+            </form>
+        </div>
+    </main>
+
+</body>
+</html>

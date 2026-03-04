@@ -106,7 +106,7 @@ public class EndpointController {
         endpointRepository.save(endpoint);
 
         redirectAttributes.addFlashAttribute("success", "Endpoint updated.");
-        return "redirect:/endpoints/" + id;
+        return "redirect:/dashboard";
     }
 
     // ─── Delete ─────────────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ public class EndpointController {
 
         String msg = endpoint.getIsActive() ? "Monitoring resumed." : "Monitoring paused.";
         redirectAttributes.addFlashAttribute("success", msg);
-        return "redirect:/endpoints/" + id;
+        return "redirect:/dashboard";
     }
 
     /** Toggle whether this endpoint is shown on the public status page. */

@@ -37,6 +37,12 @@ public class User {
     @Column(name = "status_page_logo_url", length = 1024)
     private String statusPageLogoUrl;
 
+    @Column(name = "notify_on_endpoint_down")
+    private Boolean notifyOnEndpointDown = true;
+
+    @Column(name = "notify_on_endpoint_recovery")
+    private Boolean notifyOnEndpointRecovery = true;
+
     // Setters used by CustomOAuth2UserService (explicit for reliability with Lombok)
     public void setEmail(String email) {
         this.email = email;
@@ -48,5 +54,13 @@ public class User {
 
     public void setPicture(String picture) {
         this.picture = picture;
+    }
+
+    public void setNotifyOnEndpointDown(Boolean notifyOnEndpointDown) {
+        this.notifyOnEndpointDown = notifyOnEndpointDown;
+    }
+
+    public void setNotifyOnEndpointRecovery(Boolean notifyOnEndpointRecovery) {
+        this.notifyOnEndpointRecovery = notifyOnEndpointRecovery;
     }
 }
