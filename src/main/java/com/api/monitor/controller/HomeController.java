@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.api.monitor.entity.Endpoint;
@@ -25,10 +26,16 @@ public class HomeController {
     private final EndpointRepository endpointRepository;
 
     @GetMapping("/")
-    public String home(@AuthenticationPrincipal OAuth2User principal, Model model) {
+    public String home(
+            @AuthenticationPrincipal OAuth2User principal,
+            @RequestParam(value = "accountDeleted", required = false) Boolean accountDeleted,
+            Model model) {
         if (principal != null) {
             String displayName = principal.getAttribute("name");
             model.addAttribute("userDisplayName", displayName != null ? displayName : "User");
+        }
+        if (Boolean.TRUE.equals(accountDeleted)) {
+            model.addAttribute("success", "Your account and all monitoring data have been deleted. You can sign in again with Google anytime.");
         }
         return "index";  // loads index.html
     }

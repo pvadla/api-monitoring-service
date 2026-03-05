@@ -10,7 +10,13 @@
 
     <nav class="bg-white shadow-sm border-b border-gray-100">
         <div class="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
-            <a href="/dashboard" class="text-blue-600 font-medium hover:underline">← Dashboard</a>
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center space-x-2 text-blue-600 font-bold hover:opacity-90">
+                    <span>🔍</span>
+                    <span>APIWatch</span>
+                </a>
+                <a href="/dashboard" class="text-gray-600 font-medium hover:underline">← Dashboard</a>
+            </div>
             <span class="text-gray-500 text-sm">Profile</span>
         </div>
     </nav>
@@ -64,6 +70,21 @@
                 </div>
                 <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium">
                     Save changes
+                </button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-red-100 p-6">
+            <h2 class="text-lg font-semibold text-red-600 mb-2">Delete account</h2>
+            <p class="text-sm text-gray-600 mb-4">
+                This will permanently delete your account, all endpoints, checks, incidents and any other monitoring data.
+                This action cannot be undone.
+            </p>
+            <form th:action="@{/settings/profile/delete-account}" method="post"
+                  onsubmit="return confirm('Are you sure you want to permanently delete your account and all monitoring data? This cannot be undone.');">
+                <button type="submit"
+                        class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 font-medium">
+                    Delete my account
                 </button>
             </form>
         </div>

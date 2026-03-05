@@ -19,6 +19,9 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
         return findByUserOrderByStartedAtDesc(user, PageRequest.of(0, limit));
     }
 
+    /** Delete all incidents for a user (for account deletion). */
+    void deleteByUser(User user);
+
     /** Open (unresolved) auto-incident for this endpoint, if any. */
     Optional<Incident> findFirstByEndpointAndResolvedAtIsNullOrderByStartedAtDesc(Endpoint endpoint);
 }
