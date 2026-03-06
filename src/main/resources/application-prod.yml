@@ -11,3 +11,11 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+
+apiwatch:
+  app:
+    base-url: ${APIWATCH_BASE_URL:https://apiwatch.app}
+  mail:
+    enabled: ${APIWATCH_MAIL_ENABLED:true}
+    from: ${APIWATCH_MAIL_FROM:no-reply@apiwatch.app}
+    SMTP2GO_API_KEY: ${SMTP2GO_API_KEY:missing}

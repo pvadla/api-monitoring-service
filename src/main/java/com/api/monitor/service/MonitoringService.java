@@ -31,6 +31,7 @@ public class MonitoringService {
     private final EndpointCheckRepository endpointCheckRepository;
     private final IncidentRepository incidentRepository;
     private final WebClient webClient;
+    private final EmailNotificationService emailNotificationService;
 
     // ─────────────────────────────────────────────────────
     //  Scheduler: fires every 60 seconds
@@ -104,7 +105,7 @@ public class MonitoringService {
             if (!hasOpenIncident) {
                 handleDownAlert(ep, result);
             }
-        } else if (wasUp && result.isUp()) {
+        } else if (!wasUp && result.isUp()) {
             handleRecoveryAlert(ep);
         }
     }
@@ -194,7 +195,18 @@ public class MonitoringService {
 
         log.warn("🔴 INCIDENT created: '{}' ({}) — {} [failures: {}]. Incident#{}",
                 ep.getName(), ep.getUrl(), result.failureReason(), ep.getFailureCount(), incident.getId());
-        // TODO: alertService.sendDownAlert(ep, incident);
+        try {
+            emailNotificationService.sendEndpointDownEmail(
+                    ep.getUser(),
+                    ep,
+                    incident,
+                    result.failureReason(),
+                    result.errorMessage(),
+                    result.statusCode(),
+                    result.responseTimeMs());
+        } catch (Exception ex) {
+            log.error("Failed to send down alert email for endpoint {}: {}", ep.getId(), ex.getMessage(), ex);
+        }
     }
 
     private void handleRecoveryAlert(Endpoint ep) {
@@ -210,7 +222,11 @@ public class MonitoringService {
 
                     log.info("🟢 INCIDENT resolved: '{}' ({}) — downtime {} minutes. Incident#{}",
                             ep.getName(), ep.getUrl(), durationMinutes, incident.getId());
-                    // TODO: alertService.sendRecoveryAlert(ep, incident);
+                    try {
+                        emailNotificationService.sendEndpointRecoveryEmail(ep.getUser(), ep, incident);
+                    } catch (Exception ex) {
+                        log.error("Failed to send recovery email for endpoint {}: {}", ep.getId(), ex.getMessage(), ex);
+                    }
                 });
     }
 

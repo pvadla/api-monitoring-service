@@ -29,3 +29,10 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+apiwatch:
+  app:
+    base-url: ${APIWATCH_BASE_URL:http://localhost:8080}
+  mail:
+    enabled: true
+    from: ${APIWATCH_MAIL_FROM:no-reply@apiwatch.app}
