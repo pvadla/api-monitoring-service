@@ -1,10 +1,18 @@
 package com.api.monitor.service;
 
 import java.net.UnknownHostException;
+import java.net.URL;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -15,8 +23,10 @@ import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.EndpointCheck;
 import com.api.monitor.entity.Incident;
 import com.api.monitor.entity.Incident.IncidentStatus;
+import com.api.monitor.entity.HeartbeatMonitor;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
+import com.api.monitor.repository.HeartbeatMonitorRepository;
 import com.api.monitor.repository.IncidentRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +40,7 @@ public class MonitoringService {
     private final EndpointRepository endpointRepository;
     private final EndpointCheckRepository endpointCheckRepository;
     private final IncidentRepository incidentRepository;
+    private final HeartbeatMonitorRepository heartbeatMonitorRepository;
     private final WebClient webClient;
     private final EmailNotificationService emailNotificationService;
 
@@ -56,6 +67,43 @@ public class MonitoringService {
     }
 
     // ─────────────────────────────────────────────────────
+    //  Heartbeat monitors: check for missed pings
+    // ─────────────────────────────────────────────────────
+    @Scheduled(fixedDelay = 60_000)
+    public void runHeartbeatChecks() {
+        List<HeartbeatMonitor> monitors = heartbeatMonitorRepository.findByIsActiveTrue();
+        if (monitors.isEmpty()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (HeartbeatMonitor hb : monitors) {
+            Integer interval = hb.getExpectedIntervalMinutes();
+            if (interval == null || interval <= 0) {
+                interval = 5;
+            }
+            LocalDateTime lastPing = hb.getLastPingAt();
+            if (lastPing == null) {
+                continue; // not started yet
+            }
+            // Add 1 minute grace
+            LocalDateTime deadline = lastPing.plusMinutes(interval + 1);
+            if (now.isAfter(deadline)) {
+                LocalDateTime lastNotified = hb.getLastNotifiedAt();
+                // Avoid spamming: only notify once per missed window
+                if (lastNotified == null || lastNotified.isBefore(deadline)) {
+                    try {
+                        emailNotificationService.sendHeartbeatMissedEmail(hb);
+                    } catch (Exception ex) {
+                        log.error("Failed to send heartbeat missed email for monitor {}: {}", hb.getId(), ex.getMessage(), ex);
+                    }
+                    hb.setLastNotifiedAt(now);
+                    heartbeatMonitorRepository.save(hb);
+                }
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────
     //  Due check: has enough time passed since last check?
     // ─────────────────────────────────────────────────────
     private boolean isDue(Endpoint ep) {
@@ -73,8 +121,11 @@ public class MonitoringService {
     private void checkEndpoint(Endpoint ep) {
         boolean wasUp = Boolean.TRUE.equals(ep.getIsUp());
 
-        // Perform HTTP check and capture timing + status
-        CheckResult result = performHttpCheck(ep.getUrl());
+        // Perform HTTP + content check and capture timing + status
+        CheckResult result = performHttpCheck(ep);
+
+        // Update SSL certificate info for HTTPS endpoints
+        updateSslInfo(ep);
 
         // Update failure count
         if (result.isUp()) {
@@ -115,7 +166,8 @@ public class MonitoringService {
     //  Uses WebClient with a 10-second timeout.
     //  4xx/5xx → DOWN, exception (timeout, DNS fail) → DOWN
     // ─────────────────────────────────────────────────────
-    private CheckResult performHttpCheck(String url) {
+    private CheckResult performHttpCheck(Endpoint ep) {
+        String url = ep.getUrl();
         long start = System.currentTimeMillis();
         try {
             var response = webClient.get()
@@ -123,15 +175,31 @@ public class MonitoringService {
                     .retrieve()
                     .onStatus(
                             httpStatus -> httpStatus.is4xxClientError()
-                            || httpStatus.is5xxServerError(),
-                            clientResponse -> clientResponse.createException()
-                    )
-                    .toBodilessEntity()
+                                    || httpStatus.is5xxServerError(),
+                            clientResponse -> clientResponse.createException())
+                    .toEntity(String.class)
                     .timeout(Duration.ofSeconds(10))
                     .block();
 
             long elapsed = System.currentTimeMillis() - start;
             int statusCode = response != null ? response.getStatusCode().value() : 0;
+            String body = response != null && response.getBody() != null ? response.getBody() : "";
+
+            // HTTP status OK?
+            if (statusCode >= 400) {
+                log.warn("⚠️  {} → HTTP {} ({}ms)", url, statusCode, elapsed);
+                return new CheckResult(false, elapsed, statusCode,
+                        "HTTP " + statusCode, statusCode >= 500 ? "HTTP 5xx" : "HTTP 4xx");
+            }
+
+            // Optional body assertion
+            String expected = ep.getExpectedBodySubstring();
+            if (expected != null && !expected.isBlank() && !body.contains(expected)) {
+                log.warn("⚠️  {} → BODY ASSERTION FAILED ({}ms) – expected text not found", url, elapsed);
+                return new CheckResult(false, elapsed, statusCode,
+                        "Expected to find \"" + expected + "\" in response body.",
+                        "Body assertion failed");
+            }
 
             log.debug("✅ {} → HTTP {} ({}ms)", url, statusCode, elapsed);
             return new CheckResult(true, elapsed, statusCode, null, null);
@@ -228,6 +296,66 @@ public class MonitoringService {
                         log.error("Failed to send recovery email for endpoint {}: {}", ep.getId(), ex.getMessage(), ex);
                     }
                 });
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  SSL certificate monitoring (expiry)
+    // ─────────────────────────────────────────────────────
+    private void updateSslInfo(Endpoint ep) {
+        String url = ep.getUrl();
+        if (url == null || !url.toLowerCase().startsWith("https://")) {
+            return;
+        }
+        try {
+            URL parsed = new URL(url);
+            String host = parsed.getHost();
+            int port = parsed.getPort() > 0 ? parsed.getPort() : 443;
+
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, null, null);
+            SSLSocketFactory factory = context.getSocketFactory();
+
+            try (SSLSocket socket = (SSLSocket) factory.createSocket(host, port)) {
+                socket.setSoTimeout(10_000);
+                socket.startHandshake();
+                SSLSession session = socket.getSession();
+                Certificate[] certs = session.getPeerCertificates();
+                if (certs.length > 0 && certs[0] instanceof X509Certificate x509) {
+                    var expiryInstant = x509.getNotAfter().toInstant();
+                    LocalDateTime expiry = LocalDateTime.ofInstant(expiryInstant, java.time.ZoneId.systemDefault());
+                    ep.setSslExpiresAt(expiry);
+                    endpointRepository.save(ep);
+
+                    long daysLeft = ChronoUnit.DAYS.between(LocalDateTime.now(), expiry);
+                    if (daysLeft >= 0 && daysLeft <= 14) {
+                        boolean hasOpenIncident = incidentRepository
+                                .findFirstByEndpointAndResolvedAtIsNullOrderByStartedAtDesc(ep)
+                                .isPresent();
+                        if (!hasOpenIncident) {
+                            Incident incident = new Incident();
+                            incident.setUser(ep.getUser());
+                            incident.setEndpoint(ep);
+                            incident.setAutoGenerated(true);
+                            incident.setTitle("SSL certificate expiring soon: " + ep.getName());
+                            incident.setDescription("The SSL certificate for this endpoint expires in " + daysLeft + " days.");
+                            incident.setFailureReason("SSL certificate expiry");
+                            incident.setStatus(Incident.IncidentStatus.INVESTIGATING);
+                            incident.setStartedAt(LocalDateTime.now());
+                            incidentRepository.save(incident);
+
+                            log.warn("🔒 SSL expiry incident created for endpoint {} (expires in {} days)", ep.getId(), daysLeft);
+                            try {
+                                emailNotificationService.sendSslExpiryEmail(ep.getUser(), ep, expiry, daysLeft);
+                            } catch (Exception ex) {
+                                log.error("Failed to send SSL expiry email for endpoint {}: {}", ep.getId(), ex.getMessage(), ex);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.debug("Failed to update SSL info for {}: {}", url, ex.getMessage());
+        }
     }
 
     // ─────────────────────────────────────────────────────

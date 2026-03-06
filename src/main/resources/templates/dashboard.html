@@ -82,23 +82,31 @@
                 </p>
             </div>
 
-            <!-- Add Endpoint Button -->
+            <!-- Add Monitor Button -->
             <button onclick="document.getElementById(
                     'addModal').classList.remove('hidden')" class="bg-blue-600 text-white px-5 py-2
                        rounded-lg hover:bg-blue-700
                        font-medium shadow-sm
                        flex items-center space-x-2">
                 <span class="text-lg">+</span>
-                <span>Add Endpoint</span>
+                <span>Add Monitor</span>
             </button>
         </div>
 
         <!-- Success Message -->
-        <div th:if="${success}" class="mb-6 bg-green-50 border border-green-200
+        <div th:if="${success}" class="mb-4 bg-green-50 border border-green-200
        text-green-700 px-6 py-4 rounded-lg
        flex items-center space-x-2">
             <span>✅</span>
             <span th:text="${success}">Success!</span>
+        </div>
+
+        <!-- Error / Warning Message -->
+        <div th:if="${error}" class="mb-6 bg-red-50 border border-red-200
+       text-red-700 px-6 py-4 rounded-lg
+       flex items-center space-x-2">
+            <span>⚠️</span>
+            <span th:text="${error}">Something went wrong.</span>
         </div>
 
         <!-- Stats Cards -->
@@ -142,8 +150,8 @@
             </div>
         </div>
 
-        <!-- Endpoints List (shown when endpoints exist) -->
-        <div th:if="${not #lists.isEmpty(endpoints)}">
+        <!-- Endpoints List -->
+        <div>
             <h2 class="text-xl font-bold text-gray-900 mb-4">Your Endpoints</h2>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <table class="w-full text-sm">
@@ -164,6 +172,7 @@
                             th:data-name="${ep.name}"
                             th:data-url="${ep.url}"
                             th:data-interval="${ep.checkInterval}"
+                            th:data-expected-body="${ep.expectedBodySubstring}"
                             class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4">
                                 <span th:if="${ep.isUp}" class="inline-flex items-center space-x-2">
@@ -211,30 +220,59 @@
                                 </div>
                             </td>
                         </tr>
+                        <tr th:if="${#lists.isEmpty(endpoints)}" class="border-t border-gray-100">
+                            <td colspan="7" class="px-6 py-10 text-center text-gray-500">
+                                No endpoints yet. Add an HTTP monitor via <strong>Add Monitor</strong> → HTTP / Uptime monitor.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Empty State (shown when no endpoints) -->
-        <div th:if="${#lists.isEmpty(endpoints)}"
-            class="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center">
-            <div class="text-6xl mb-4">🚀</div>
-            <h2 class="text-2xl font-bold text-gray-900">Add Your First API Endpoint</h2>
-            <p class="text-gray-400 mt-3 max-w-md mx-auto">
-                Start monitoring your API in 60 seconds. Get instant alerts when it goes down.
-            </p>
-            <button onclick="document.getElementById('addModal').classList.remove('hidden')"
-                    class="mt-8 bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700
-                           font-medium shadow-md inline-flex items-center space-x-2">
-                <span>+</span><span>Add Your First Endpoint</span>
-            </button>
+        <!-- Heartbeat monitors (on dashboard) -->
+        <div class="mt-10">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Heartbeat monitors</h2>
+            <div th:if="${not #lists.isEmpty(heartbeats)}" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Name</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Heartbeat URL</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Expected every</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium">Last ping</th>
+                            <th class="text-left px-6 py-4 text-gray-500 font-medium w-24">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="hb : ${heartbeats}" class="border-b border-gray-50 hover:bg-gray-50">
+                            <td class="px-6 py-3 font-medium text-gray-900" th:text="${hb.name}">—</td>
+                            <td class="px-6 py-3">
+                                <code class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-700 break-all"
+                                      th:text="${baseUrl + '/heartbeat/' + hb.token}">/heartbeat/...</code>
+                            </td>
+                            <td class="px-6 py-3 text-gray-600" th:text="${hb.expectedIntervalMinutes} + ' min'">5 min</td>
+                            <td class="px-6 py-3 text-gray-500"
+                                th:text="${hb.lastPingAt != null ? #temporals.format(hb.lastPingAt, 'MMM d, HH:mm') : 'Not yet'}">Not yet</td>
+                            <td class="px-6 py-3">
+                                <form th:action="@{'/heartbeats/' + ${hb.id} + '/delete'}" method="post"
+                                      onsubmit="return confirm('Delete this heartbeat monitor?');">
+                                    <button type="submit" class="text-gray-400 hover:text-red-600 text-sm">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div th:if="${#lists.isEmpty(heartbeats)}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
+                <p class="text-gray-500 text-sm">No heartbeat monitors yet. Add one via <strong>Add Monitor</strong> → Cron / Heartbeat monitor.</p>
+            </div>
         </div>
 
     </main>
 
     <!-- ════════════════════════════════════ -->
-    <!--  ADD ENDPOINT MODAL                  -->
+    <!--  ADD MONITOR MODAL                  -->
     <!-- ════════════════════════════════════ -->
     <div id="addModal" class="hidden fixed inset-0 bg-black
             bg-opacity-50 z-50 flex items-center
@@ -245,7 +283,7 @@
             <div class="flex justify-between
                     items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-900">
-                    Add New Endpoint
+                    Add New Monitor
                 </h2>
                 <button onclick="document.getElementById(
                         'addModal').classList.add('hidden')" class="text-gray-400
@@ -254,7 +292,22 @@
                 </button>
             </div>
 
-            <form th:action="@{/endpoints/add}" method="post">
+            <!-- Toggle between HTTP and Heartbeat monitors -->
+            <div class="mb-4 flex space-x-2 text-sm">
+                <button type="button" id="httpTab"
+                        onclick="setMonitorType('http')"
+                        class="flex-1 px-3 py-2 rounded-lg border border-blue-600 bg-blue-600 text-white font-medium">
+                    HTTP / Uptime monitor
+                </button>
+                <button type="button" id="heartbeatTab"
+                        onclick="setMonitorType('heartbeat')"
+                        class="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium">
+                    Cron / Heartbeat monitor
+                </button>
+            </div>
+
+            <!-- HTTP monitor form -->
+            <form id="httpMonitorForm" th:action="@{/endpoints/add}" method="post">
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium
@@ -280,6 +333,23 @@
                               focus:ring-blue-500" />
                 </div>
 
+                <div class="mb-4">
+                    <label class="block text-sm font-medium
+                              text-gray-700 mb-2">
+                        Expected body text (optional)
+                    </label>
+                    <input type="text" name="expectedBodySubstring"
+                           placeholder="e.g. status: OK"
+                           class="w-full border border-gray-300
+                              rounded-lg px-4 py-2
+                              focus:outline-none
+                              focus:ring-2
+                              focus:ring-blue-500" />
+                    <p class="mt-1 text-xs text-gray-400">
+                        Check passes only if the response body contains this text.
+                    </p>
+                </div>
+
                 <div class="mb-6">
                     <label class="block text-sm font-medium
                               text-gray-700 mb-2">
@@ -302,7 +372,54 @@
                                text-white py-3 rounded-lg
                                hover:bg-blue-700
                                font-medium">
-                        Start Monitoring
+                        Add HTTP monitor
+                    </button>
+                    <button type="button" onclick="document.getElementById(
+                            'addModal').classList.add('hidden')" class="flex-1 border border-gray-300
+                               text-gray-600 py-3 rounded-lg
+                               hover:bg-gray-50 font-medium">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+
+            <!-- Heartbeat monitor form -->
+            <form id="heartbeatMonitorForm" th:action="@{/heartbeats}" method="post" class="hidden mt-2">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium
+                              text-gray-700 mb-2">
+                        Name
+                    </label>
+                    <input type="text" name="name" placeholder="Nightly DB backup" required class="w-full border border-gray-300
+                              rounded-lg px-4 py-2
+                              focus:outline-none
+                              focus:ring-2
+                              focus:ring-blue-500" />
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium
+                              text-gray-700 mb-2">
+                        Expected interval (minutes)
+                    </label>
+                    <input type="number" name="expectedIntervalMinutes" min="1" value="5" required
+                           class="w-full border border-gray-300
+                              rounded-lg px-4 py-2
+                              focus:outline-none
+                              focus:ring-2
+                              focus:ring-blue-500" />
+                    <p class="mt-1 text-xs text-gray-400">
+                        APIWatch will alert you if a heartbeat is missed for longer than this.
+                    </p>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button type="submit" class="flex-1 bg-blue-600
+                               text-white py-3 rounded-lg
+                               hover:bg-blue-700
+                               font-medium">
+                        Add heartbeat monitor
                     </button>
                     <button type="button" onclick="document.getElementById(
                             'addModal').classList.add('hidden')" class="flex-1 border border-gray-300
@@ -333,6 +450,16 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">URL</label>
                     <input type="url" id="editUrl" name="url" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                 </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Expected body text (optional)</label>
+                    <input type="text" id="editExpectedBody" name="expectedBodySubstring"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g. status: OK" />
+                    <p class="mt-1 text-xs text-gray-400">
+                        Check passes only if the response body contains this text.
+                    </p>
+                </div>
+
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Check Every</label>
                     <select id="editInterval" name="checkInterval" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
@@ -356,12 +483,42 @@
             var name = row.getAttribute('data-name');
             var url = row.getAttribute('data-url');
             var interval = row.getAttribute('data-interval');
+            var expected = row.getAttribute('data-expected-body');
             document.getElementById('editForm').action = '/endpoints/' + id + '/edit';
             document.getElementById('editName').value = name || '';
             document.getElementById('editUrl').value = url || '';
             document.getElementById('editInterval').value = interval || '5';
+            document.getElementById('editExpectedBody').value = expected || '';
             document.getElementById('editModal').classList.remove('hidden');
         }
+
+        function setMonitorType(type) {
+            var httpForm = document.getElementById('httpMonitorForm');
+            var hbForm = document.getElementById('heartbeatMonitorForm');
+            var httpTab = document.getElementById('httpTab');
+            var hbTab = document.getElementById('heartbeatTab');
+
+            if (type === 'heartbeat') {
+                httpForm.classList.add('hidden');
+                hbForm.classList.remove('hidden');
+                httpTab.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                httpTab.classList.add('border-gray-300', 'text-gray-600');
+                hbTab.classList.remove('border-gray-300', 'text-gray-600');
+                hbTab.classList.add('border-blue-600', 'bg-blue-600', 'text-white');
+            } else {
+                hbForm.classList.add('hidden');
+                httpForm.classList.remove('hidden');
+                hbTab.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                hbTab.classList.add('border-gray-300', 'text-gray-600');
+                httpTab.classList.remove('border-gray-300', 'text-gray-600');
+                httpTab.classList.add('border-blue-600', 'bg-blue-600', 'text-white');
+            }
+        }
+
+        // default selection when modal opens
+        document.addEventListener('DOMContentLoaded', function () {
+            setMonitorType('http');
+        });
     </script>
 
 </body>

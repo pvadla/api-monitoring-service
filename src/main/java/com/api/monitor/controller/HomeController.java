@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.api.monitor.entity.Endpoint;
+import com.api.monitor.entity.HeartbeatMonitor;
 import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointRepository;
+import com.api.monitor.repository.HeartbeatMonitorRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,10 @@ public class HomeController {
 
     private final UserRepository userRepository;
     private final EndpointRepository endpointRepository;
+    private final HeartbeatMonitorRepository heartbeatMonitorRepository;
+
+    @Value("${apiwatch.app.base-url:http://localhost:8080}")
+    private String baseUrl;
 
     @GetMapping("/")
     public String home(
@@ -50,12 +56,15 @@ public class HomeController {
         long downCount = endpointRepository.countByUserAndIsUp(user, false);
 
         List<Endpoint> endpoints = endpointRepository.findByUser(user);
+        List<HeartbeatMonitor> heartbeats = heartbeatMonitorRepository.findByUser(user);
 
         model.addAttribute("user", user);
         model.addAttribute("endpointCount", total);
         model.addAttribute("upCount", upCount);
         model.addAttribute("downCount", downCount);
         model.addAttribute("endpoints", endpoints);
+        model.addAttribute("heartbeats", heartbeats);
+        model.addAttribute("baseUrl", baseUrl);
 
         return "dashboard";  // loads dashboard.html
     }

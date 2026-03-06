@@ -42,7 +42,9 @@ public class SecurityConfig {
                     "/h2-console",
                     "/h2-console/**",
                     "/h2-console/login.do/**",
-                    "/status/**"
+                    "/status/**",
+                    "/contact",
+                    "/heartbeat/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

@@ -39,15 +39,31 @@ public class EndpointController {
             @RequestParam String name,
             @RequestParam String url,
             @RequestParam Integer checkInterval,
+            @RequestParam(required = false) String expectedBodySubstring,
             RedirectAttributes redirectAttributes) {
 
         User user = getUser(principal);
+
+        // Enforce FREE tier limit: max 5 endpoints
+        String tier = user.getSubscriptionTier();
+        if (tier == null || tier.equalsIgnoreCase("FREE")) {
+            long existing = endpointRepository.countByUser(user);
+            if (existing >= 5) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Free plan limit reached: you can monitor up to 5 endpoints. Remove an endpoint or upgrade your plan.");
+                return "redirect:/dashboard";
+            }
+        }
 
         Endpoint endpoint = new Endpoint();
         endpoint.setUser(user);
         endpoint.setName(name);
         endpoint.setUrl(url);
         endpoint.setCheckInterval(checkInterval);
+        endpoint.setExpectedBodySubstring(
+                expectedBodySubstring != null && !expectedBodySubstring.isBlank()
+                        ? expectedBodySubstring.trim()
+                        : null);
 
         endpointRepository.save(endpoint);
 
@@ -97,12 +113,17 @@ public class EndpointController {
             @RequestParam String name,
             @RequestParam String url,
             @RequestParam Integer checkInterval,
+            @RequestParam(required = false) String expectedBodySubstring,
             RedirectAttributes redirectAttributes) {
 
         Endpoint endpoint = getOwnedEndpoint(id, principal);
         endpoint.setName(name.trim());
         endpoint.setUrl(url.trim());
         endpoint.setCheckInterval(checkInterval);
+        endpoint.setExpectedBodySubstring(
+                expectedBodySubstring != null && !expectedBodySubstring.isBlank()
+                        ? expectedBodySubstring.trim()
+                        : null);
         endpointRepository.save(endpoint);
 
         redirectAttributes.addFlashAttribute("success", "Endpoint updated.");
