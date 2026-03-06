@@ -97,10 +97,14 @@ public class EndpointController {
         .average()
         .orElse(0.0);
 
+        User user = userRepository.findByEmail(principal.getAttribute("email")).orElseThrow();
+        model.addAttribute("user", user);
         model.addAttribute("endpoint", endpoint);
         model.addAttribute("checks", checks);
         model.addAttribute("uptimePct", String.format("%.2f", uptimePct));
         model.addAttribute("avgResponseMs", String.format("%.0f", avgResponseMs));
+        model.addAttribute("pageTitle", endpoint.getName() + " - APIWatch");
+        model.addAttribute("activeNav", "dashboard");
 
         return "endpoint-detail";
     }

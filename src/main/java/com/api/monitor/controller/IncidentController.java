@@ -35,6 +35,7 @@ public class IncidentController {
         var incidents = incidentRepository.findLatestByUser(user, 100);
         model.addAttribute("user", user);
         model.addAttribute("incidents", incidents);
+        model.addAttribute("activeNav", "incidents");
         return "incidents";
     }
 

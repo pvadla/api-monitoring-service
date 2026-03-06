@@ -37,12 +37,15 @@ public class HomeController {
             @RequestParam(value = "accountDeleted", required = false) Boolean accountDeleted,
             Model model) {
         if (principal != null) {
+            String email = principal.getAttribute("email");
+            userRepository.findByEmail(email).ifPresent(u -> model.addAttribute("user", u));
             String displayName = principal.getAttribute("name");
             model.addAttribute("userDisplayName", displayName != null ? displayName : "User");
         }
         if (Boolean.TRUE.equals(accountDeleted)) {
             model.addAttribute("success", "Your account and all monitoring data have been deleted. You can sign in again with Google anytime.");
         }
+        model.addAttribute("showFooter", true);
         return "index";  // loads index.html
     }
 
@@ -65,6 +68,7 @@ public class HomeController {
         model.addAttribute("endpoints", endpoints);
         model.addAttribute("heartbeats", heartbeats);
         model.addAttribute("baseUrl", baseUrl);
+        model.addAttribute("activeNav", "dashboard");
 
         return "dashboard";  // loads dashboard.html
     }

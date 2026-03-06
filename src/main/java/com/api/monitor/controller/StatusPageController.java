@@ -3,6 +3,8 @@ package com.api.monitor.controller;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,24 +36,29 @@ public class StatusPageController {
 
     /** Public status page: /status/{slug} */
     @GetMapping("/{slug}")
-    public String statusPage(@PathVariable String slug, Model model) {
-        User user = userRepository.findByStatusSlug(slug)
+    public String statusPage(
+            @PathVariable String slug,
+            @AuthenticationPrincipal OAuth2User principal,
+            Model model) {
+        User pageOwner = userRepository.findByStatusSlug(slug)
                 .orElseThrow(() -> new RuntimeException("Status page not found"));
 
-        List<Endpoint> endpoints = endpointRepository.findByUserAndShowOnStatusPageTrue(user);
-        List<Incident> incidents = incidentRepository.findLatestByUser(user, 50);
+        List<Endpoint> endpoints = endpointRepository.findByUserAndShowOnStatusPageTrue(pageOwner);
+        List<Incident> incidents = incidentRepository.findLatestByUser(pageOwner, 50);
 
-        String title = user.getStatusPageTitle() != null && !user.getStatusPageTitle().isBlank()
-                ? user.getStatusPageTitle()
+        String title = pageOwner.getStatusPageTitle() != null && !pageOwner.getStatusPageTitle().isBlank()
+                ? pageOwner.getStatusPageTitle()
                 : "Status";
-        String logoUrl = user.getStatusPageLogoUrl();
+        String logoUrl = pageOwner.getStatusPageLogoUrl();
 
         long upCount = endpoints.stream().filter(e -> Boolean.TRUE.equals(e.getIsUp())).count();
         String overallStatusLabel = endpoints.isEmpty() ? "No endpoints configured"
                 : (upCount == endpoints.size() ? "All Systems Operational" : "Some Issues");
         String statusKind = endpoints.isEmpty() ? "none" : (upCount == endpoints.size() ? "all-up" : "issues");
 
-        model.addAttribute("user", user);
+        if (principal != null) {
+            userRepository.findByEmail(principal.getAttribute("email")).ifPresent(u -> model.addAttribute("user", u));
+        }
         model.addAttribute("slug", slug);
         model.addAttribute("pageTitle", title);
         model.addAttribute("logoUrl", logoUrl);

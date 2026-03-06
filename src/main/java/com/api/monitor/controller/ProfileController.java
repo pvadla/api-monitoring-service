@@ -40,6 +40,7 @@ public class ProfileController {
     public String form(@AuthenticationPrincipal OAuth2User principal, Model model) {
         User user = getUser(principal);
         model.addAttribute("user", user);
+        model.addAttribute("activeNav", "profile");
         return "profile";
     }
 

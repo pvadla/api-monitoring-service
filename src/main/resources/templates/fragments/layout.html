@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="html(title, content, extraHead)">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${title}">APIWatch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+    <!-- Page-specific head content (e.g. extra scripts/libs) -->
+    <th:block th:replace="${extraHead}"/>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  SHARED NAVBAR                                       -->
+<!-- ═══════════════════════════════════════════════════ -->
+<nav class="bg-white shadow-sm fixed w-full top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+
+        <!-- Logo -->
+        <a th:href="@{/}" class="flex items-center space-x-2 hover:opacity-90 flex-shrink-0">
+            <span class="text-2xl">🔍</span>
+            <span class="text-xl font-bold text-blue-600">APIWatch</span>
+        </a>
+
+        <!-- ── Authenticated nav links ── -->
+        <div sec:authorize="isAuthenticated()" class="hidden md:flex items-center space-x-6">
+            <a href="/dashboard"
+               th:classappend="${activeNav == 'dashboard'} ? ' text-blue-600 font-semibold border-b-2 border-blue-600 pb-1' : ' text-gray-500 hover:text-blue-600'"
+               class="font-medium transition-colors">
+                Dashboard
+            </a>
+            <a href="/incidents"
+               th:classappend="${activeNav == 'incidents'} ? ' text-blue-600 font-semibold border-b-2 border-blue-600 pb-1' : ' text-gray-500 hover:text-blue-600'"
+               class="font-medium transition-colors">
+                Incidents
+            </a>
+            <a th:if="${user != null and user.statusSlug != null}"
+               th:href="@{'/status/' + ${user.statusSlug}}"
+               target="_blank"
+               class="font-medium text-gray-500 hover:text-blue-600 transition-colors">
+                Status page ↗
+            </a>
+            <a href="/settings/profile"
+               th:classappend="${activeNav == 'profile'} ? ' text-blue-600 font-semibold border-b-2 border-blue-600 pb-1' : ' text-gray-500 hover:text-blue-600'"
+               class="font-medium transition-colors">
+                Profile
+            </a>
+            <a href="/contact"
+               th:classappend="${activeNav == 'contact'} ? ' text-blue-600 font-semibold border-b-2 border-blue-600 pb-1' : ' text-gray-500 hover:text-blue-600'"
+               class="font-medium transition-colors">
+                Contact
+            </a>
+        </div>
+
+        <!-- ── Anonymous nav links ── -->
+        <div sec:authorize="isAnonymous()" class="hidden md:flex items-center space-x-8">
+            <a href="#features" class="text-gray-600 hover:text-blue-600 font-medium">Features</a>
+            <a href="#how-it-works" class="text-gray-600 hover:text-blue-600 font-medium">How It Works</a>
+            <a href="#pricing" class="text-gray-600 hover:text-blue-600 font-medium">Pricing</a>
+            <a th:href="@{/contact}" class="text-gray-600 hover:text-blue-600 font-medium">Contact</a>
+        </div>
+
+        <!-- Right side -->
+        <div class="flex items-center space-x-4">
+
+            <!-- Anonymous: Sign In -->
+            <div sec:authorize="isAnonymous()">
+                <a th:href="@{/oauth2/authorization/google}"
+                   class="flex items-center space-x-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-medium transition-colors">
+                    <img src="https://www.google.com/favicon.ico" class="w-4 h-4" alt="Google"/>
+                    <span>Sign in with Google</span>
+                </a>
+            </div>
+
+            <!-- Authenticated: Avatar + Name + Logout -->
+            <div sec:authorize="isAuthenticated()" class="flex items-center space-x-3">
+                <img th:if="${user != null and user.picture != null}"
+                     th:src="${user.picture}"
+                     th:alt="${user.name}"
+                     class="w-9 h-9 rounded-full border-2 border-blue-100 object-cover"/>
+                <span class="text-gray-700 font-medium hidden md:block"
+                      th:text="${user != null ? user.name : ''}">User</span>
+                <form th:action="@{/logout}" method="post">
+                    <button type="submit" class="text-sm text-gray-400 hover:text-red-500 transition-colors">
+                        Logout
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  PAGE CONTENT  (injected by each page template)     -->
+<!-- ═══════════════════════════════════════════════════ -->
+<th:block th:replace="${content}"/>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  FOOTER  (only on public/landing pages)             -->
+<!--  Set showFooter=true in controller to show this.    -->
+<!-- ═══════════════════════════════════════════════════ -->
+<footer th:if="${showFooter}" class="bg-gray-900 text-gray-400 py-10 px-6">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+        <a th:href="@{/}" class="flex items-center space-x-2 hover:text-white transition-colors">
+            <span class="text-xl">🔍</span>
+            <span class="text-white font-bold">APIWatch</span>
+        </a>
+        <div class="flex space-x-8 text-sm">
+            <a href="#features" class="hover:text-white transition-colors">Features</a>
+            <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+            <a th:href="@{/contact}" class="hover:text-white transition-colors">Contact</a>
+        </div>
+        <div class="text-sm">© 2026 APIWatch. All rights reserved.</div>
+    </div>
+</footer>
+
+</body>
+</html>

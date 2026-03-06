@@ -1,83 +1,10 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>APIWatch - Monitor Your APIs</title>
-
-    <!-- Tailwind CSS (no install needed) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="stylesheet" th:href="@{/css/style.css}"/>
-</head>
-<body class="bg-gray-50 text-gray-800">
-
-<!-- ═══════════════════════════════════════ -->
-<!--  NAVBAR                                 -->
-<!-- ═══════════════════════════════════════ -->
-<nav class="bg-white shadow-sm fixed w-full top-0 z-50">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-
-        <!-- Logo (left) -->
-        <a th:href="@{/}" class="flex items-center space-x-2 hover:opacity-90">
-            <span class="text-2xl">🔍</span>
-            <span class="text-xl font-bold text-blue-600">APIWatch</span>
-        </a>
-
-        <!-- Menu Links (left-center) -->
-        <div class="hidden md:flex items-center space-x-8">
-            <a href="#features"
-               class="text-gray-600 hover:text-blue-600 font-medium">
-                Features
-            </a>
-            <a href="#how-it-works"
-               class="text-gray-600 hover:text-blue-600 font-medium">
-                How It Works
-            </a>
-            <a href="#pricing"
-               class="text-gray-600 hover:text-blue-600 font-medium">
-                Pricing
-            </a>
-            <a th:href="@{/contact}"
-               class="text-gray-600 hover:text-blue-600 font-medium">
-                Contact
-            </a>
-        </div>
-
-        <!-- Sign In Button (right) -->
-        <div class="flex items-center space-x-4">
-
-            <!-- Show if NOT logged in -->
-            <div sec:authorize="isAnonymous()">
-                <a th:href="@{/oauth2/authorization/google}"
-                   class="flex items-center space-x-2 bg-blue-600
-                          text-white px-5 py-2 rounded-lg
-                          hover:bg-blue-700 font-medium">
-                    <img src="https://www.google.com/favicon.ico"
-                         class="w-4 h-4" alt="Google"/>
-                    <span>Sign in with Google</span>
-                </a>
-            </div>
-
-            <!-- Show if logged in -->
-            <div sec:authorize="isAuthenticated()"
-                 class="flex items-center space-x-3">
-                <span class="text-gray-600" th:text="${userDisplayName}">User</span>
-                <a th:href="@{/dashboard}"
-                   class="bg-blue-600 text-white px-5 py-2
-                          rounded-lg hover:bg-blue-700 font-medium">
-                    Dashboard
-                </a>
-            </div>
-
-        </div>
-    </div>
-</nav>
-
-<!-- ═══════════════════════════════════════ -->
-<!--  HERO SECTION                           -->
-<!-- ═══════════════════════════════════════ -->
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: html('APIWatch - Monitor Your APIs', ~{::#page-content}, ~{})}">
+<body>
+<div id="page-content">
+<!-- Hero -->
 <section class="pt-32 pb-16 px-6 text-center bg-white">
     <div class="max-w-4xl mx-auto">
 
@@ -532,39 +459,6 @@
 
     </div>
 </section>
-
-<!-- ═══════════════════════════════════════ -->
-<!--  FOOTER                                 -->
-<!-- ═══════════════════════════════════════ -->
-<footer class="bg-gray-900 text-gray-400 py-10 px-6">
-    <div class="max-w-6xl mx-auto flex flex-col md:flex-row
-                justify-between items-center space-y-4 md:space-y-0">
-
-        <a th:href="@{/}" class="flex items-center space-x-2 hover:text-white transition-colors">
-            <span class="text-xl">🔍</span>
-            <span class="text-white font-bold">APIWatch</span>
-        </a>
-
-        <div class="flex space-x-8 text-sm">
-            <a href="#features"
-               class="hover:text-white transition-colors">
-               Features
-            </a>
-            <a href="#pricing"
-               class="hover:text-white transition-colors">
-               Pricing
-            </a>
-            <a href="mailto:support@apiwatch.com"
-               class="hover:text-white transition-colors">
-               Support
-            </a>
-        </div>
-
-        <div class="text-sm">
-            © 2026 APIWatch. All rights reserved.
-        </div>
-    </div>
-</footer>
-
+</div>
 </body>
 </html>

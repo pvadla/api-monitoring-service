@@ -1,69 +1,8 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard - APIWatch</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-
-<body class="bg-gray-50">
-
-    <!-- ════════════════════════════════════ -->
-    <!--  NAVBAR                              -->
-    <!-- ════════════════════════════════════ -->
-    <nav class="bg-white shadow-sm fixed w-full top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 py-4
-                flex items-center justify-between">
-
-            <!-- Logo -->
-            <a th:href="@{/}" class="flex items-center space-x-2 hover:opacity-90">
-                <span class="text-2xl">🔍</span>
-                <span class="text-xl font-bold text-blue-600">
-                    APIWatch
-                </span>
-            </a>
-
-            <!-- Nav Links -->
-            <div class="hidden md:flex items-center space-x-6">
-                <a href="/dashboard" class="text-blue-600 font-medium border-b-2
-                      border-blue-600 pb-1">
-                    Dashboard
-                </a>
-                <a href="/incidents" class="text-gray-500 hover:text-blue-600">
-                    Incidents
-                </a>
-                <a th:if="${user.statusSlug}" th:href="@{'/status/' + ${user.statusSlug}}" target="_blank" class="text-gray-500 hover:text-blue-600">
-                    Status page
-                </a>
-                <a href="/settings/profile" class="text-gray-500 hover:text-blue-600">
-                    Profile
-                </a>
-            </div>
-
-            <!-- User Info -->
-            <div class="flex items-center space-x-4">
-                <img th:src="${user.picture}" th:alt="${user.name}" class="w-9 h-9 rounded-full border-2
-                        border-blue-100" />
-                <span class="text-gray-700 font-medium
-                         hidden md:block" th:text="${user.name}">
-                    User Name
-                </span>
-                <form th:action="@{/logout}" method="post">
-                    <button type="submit" class="text-sm text-gray-400
-                               hover:text-red-500
-                               transition-colors">
-                        Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-    </nav>
-
-    <!-- ════════════════════════════════════ -->
-    <!--  MAIN CONTENT                        -->
-    <!-- ════════════════════════════════════ -->
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: html('Dashboard - APIWatch', ~{::#page-content}, ~{})}">
+<body>
+<div id="page-content">
     <main class="max-w-7xl mx-auto px-6 pt-28 pb-20">
 
         <!-- Welcome -->
@@ -520,7 +459,6 @@
             setMonitorType('http');
         });
     </script>
-
+</div>
 </body>
-
 </html>
