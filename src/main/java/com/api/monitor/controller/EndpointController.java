@@ -19,6 +19,7 @@ import com.api.monitor.entity.EndpointCheck;
 import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
+import com.api.monitor.repository.HeartbeatMonitorRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class EndpointController {
 
     private final EndpointRepository endpointRepository;
     private final EndpointCheckRepository endpointCheckRepository;
+    private final HeartbeatMonitorRepository heartbeatMonitorRepository;
     private final UserRepository userRepository;
 
     // ─── Add ────────────────────────────────────────────────────────────────
@@ -44,13 +46,14 @@ public class EndpointController {
 
         User user = getUser(principal);
 
-        // Enforce FREE tier limit: max 5 endpoints
+        // Enforce FREE tier limit: max 5 monitors total (endpoints + heartbeats)
         String tier = user.getSubscriptionTier();
         if (tier == null || tier.equalsIgnoreCase("FREE")) {
-            long existing = endpointRepository.countByUser(user);
-            if (existing >= 5) {
+            long endpoints = endpointRepository.countByUser(user);
+            long heartbeats = heartbeatMonitorRepository.findByUser(user).size();
+            if (endpoints + heartbeats >= 5) {
                 redirectAttributes.addFlashAttribute("error",
-                        "Free plan limit reached: you can monitor up to 5 endpoints. Remove an endpoint or upgrade your plan.");
+                        "Free plan limit reached: you can have up to 5 monitors (HTTP + heartbeat). Remove one or upgrade your plan.");
                 return "redirect:/dashboard";
             }
         }

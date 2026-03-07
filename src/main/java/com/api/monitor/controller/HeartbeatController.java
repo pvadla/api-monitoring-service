@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.api.monitor.entity.HeartbeatMonitor;
 import com.api.monitor.entity.User;
+import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
 import com.api.monitor.repository.UserRepository;
 
@@ -25,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class HeartbeatController {
 
     private final HeartbeatMonitorRepository heartbeatRepository;
+    private final EndpointRepository endpointRepository;
     private final UserRepository userRepository;
 
     @GetMapping("/heartbeats")
@@ -36,9 +39,23 @@ public class HeartbeatController {
     public String create(
             @AuthenticationPrincipal OAuth2User principal,
             @RequestParam String name,
-            @RequestParam Integer expectedIntervalMinutes) {
+            @RequestParam Integer expectedIntervalMinutes,
+            RedirectAttributes redirectAttributes) {
 
         User user = getUser(principal);
+
+        // Enforce FREE tier limit: max 5 monitors total (endpoints + heartbeats)
+        String tier = user.getSubscriptionTier();
+        if (tier == null || tier.equalsIgnoreCase("FREE")) {
+            long endpoints = endpointRepository.countByUser(user);
+            long heartbeats = heartbeatRepository.findByUser(user).size();
+            if (endpoints + heartbeats >= 5) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Free plan limit reached: you can have up to 5 monitors (HTTP + heartbeat). Remove one or upgrade your plan.");
+                return "redirect:/dashboard";
+            }
+        }
+
         HeartbeatMonitor hb = new HeartbeatMonitor();
         hb.setUser(user);
         hb.setName(name.trim());

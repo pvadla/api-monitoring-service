@@ -100,7 +100,6 @@
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Name</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">URL</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Check Every</th>
-                            <th class="text-left px-6 py-4 text-gray-500 font-medium">On status page</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium">Last Checked</th>
                             <th class="text-left px-6 py-4 text-gray-500 font-medium w-28">Actions</th>
                         </tr>
@@ -134,14 +133,6 @@
                                     th:text="${ep.url}">https://...</a>
                             </td>
                             <td class="px-6 py-4 text-gray-500" th:text="${ep.checkInterval} + ' min'">5 min</td>
-                            <td class="px-6 py-4">
-                                <form th:action="@{'/endpoints/' + ${ep.id} + '/toggle-status-visibility'}" method="post" class="inline">
-                                    <button type="submit" class="text-sm" th:title="${ep.showOnStatusPage != null && ep.showOnStatusPage} ? 'Hide from status page' : 'Show on status page'">
-                                        <span th:if="${ep.showOnStatusPage != null && ep.showOnStatusPage}" class="text-green-600">✓ Shown</span>
-                                        <span th:unless="${ep.showOnStatusPage != null && ep.showOnStatusPage}" class="text-gray-400">Hidden</span>
-                                    </button>
-                                </form>
-                            </td>
                             <td class="px-6 py-4 text-gray-400"
                                 th:text="${ep.lastChecked != null ? #temporals.format(ep.lastChecked, 'MMM d, HH:mm') : 'Not yet'}">
                                 Never
@@ -160,7 +151,7 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(endpoints)}" class="border-t border-gray-100">
-                            <td colspan="7" class="px-6 py-10 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">
                                 No endpoints yet. Add an HTTP monitor via <strong>Add Monitor</strong> → HTTP / Uptime monitor.
                             </td>
                         </tr>
