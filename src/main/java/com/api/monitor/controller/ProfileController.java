@@ -22,6 +22,7 @@ import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.IncidentRepository;
+import com.api.monitor.repository.SubscriptionRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -35,12 +36,15 @@ public class ProfileController {
     private final EndpointRepository endpointRepository;
     private final EndpointCheckRepository endpointCheckRepository;
     private final IncidentRepository incidentRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     @GetMapping
     public String form(@AuthenticationPrincipal OAuth2User principal, Model model) {
         User user = getUser(principal);
         model.addAttribute("user", user);
         model.addAttribute("activeNav", "profile");
+        model.addAttribute("activeSubscriptions",
+            subscriptionRepository.findByUserAndStatusIn(user, List.of("active", "authenticated")));
         return "profile";
     }
 

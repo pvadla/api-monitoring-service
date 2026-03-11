@@ -36,3 +36,15 @@ apiwatch:
   mail:
     enabled: true
     from: ${APIWATCH_MAIL_FROM:no-reply@apiwatch.app}
+  contact:
+    to: ${APIWATCH_CONTACT_TO:support@apiwatch.app}
+
+# Razorpay (use test keys in local; set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in production)
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:rzp_test_SO1NqspUfKm94a}
+  key-secret: ${RAZORPAY_KEY_SECRET:hm7n4x3lMCQcsXYuBBFTD82K}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+  starter-amount-paise: ${RAZORPAY_STARTER_AMOUNT_PAISE:58000}
+  plan:
+    starter: ${RAZORPAY_PLAN_STARTER:plan_SOjYp6wfUgbCJv}
+    pro: ${RAZORPAY_PLAN_PRO:missing}

@@ -43,6 +43,10 @@ public class User {
     @Column(name = "notify_on_endpoint_recovery")
     private Boolean notifyOnEndpointRecovery = true;
 
+    /** Razorpay customer id for subscriptions */
+    @Column(name = "razorpay_customer_id", length = 64)
+    private String razorpayCustomerId;
+
     // Setters used by CustomOAuth2UserService (explicit for reliability with Lombok)
     public void setEmail(String email) {
         this.email = email;
@@ -63,4 +67,12 @@ public class User {
     public void setNotifyOnEndpointRecovery(Boolean notifyOnEndpointRecovery) {
         this.notifyOnEndpointRecovery = notifyOnEndpointRecovery;
     }
+
+    public Long getId() { return id; }
+    public String getEmail() { return email; }
+    public String getName() { return name; }
+    public String getSubscriptionTier() { return subscriptionTier; }
+    public void setSubscriptionTier(String subscriptionTier) { this.subscriptionTier = subscriptionTier; }
+    public String getRazorpayCustomerId() { return razorpayCustomerId; }
+    public void setRazorpayCustomerId(String razorpayCustomerId) { this.razorpayCustomerId = razorpayCustomerId; }
 }

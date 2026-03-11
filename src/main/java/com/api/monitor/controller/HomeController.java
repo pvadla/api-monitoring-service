@@ -17,6 +17,7 @@ import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
 import com.api.monitor.repository.UserRepository;
+import com.api.monitor.service.RazorpayService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +28,7 @@ public class HomeController {
     private final UserRepository userRepository;
     private final EndpointRepository endpointRepository;
     private final HeartbeatMonitorRepository heartbeatMonitorRepository;
+    private final RazorpayService razorpayService;
 
     @Value("${apiwatch.app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -46,13 +48,21 @@ public class HomeController {
             model.addAttribute("success", "Your account and all monitoring data have been deleted. You can sign in again with Google anytime.");
         }
         model.addAttribute("showFooter", true);
+        model.addAttribute("starterAmountDisplay", razorpayService.getStarterAmountPaise() / 100);
         return "index";  // loads index.html
     }
 
     @GetMapping("/dashboard")
-    public String dashboard(@AuthenticationPrincipal OAuth2User principal, Model model) {
+    public String dashboard(
+            @AuthenticationPrincipal OAuth2User principal,
+            @RequestParam(value = "subscription", required = false) String subscription,
+            Model model) {
         String email = principal.getAttribute("email");
         User user = userRepository.findByEmail(email).orElseThrow();
+
+        if ("success".equals(subscription)) {
+            model.addAttribute("success", "Subscription activated! You now have access to the STARTER plan.");
+        }
 
         long total = endpointRepository.countByUser(user);
         long upCount = endpointRepository.countByUserAndIsUp(user, true);

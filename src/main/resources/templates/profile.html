@@ -56,6 +56,22 @@
             </form>
         </div>
 
+        <!-- Subscription (when user has active subscription) -->
+        <div th:if="${!activeSubscriptions.isEmpty()}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Subscription</h2>
+            <p class="text-gray-500 text-sm mb-4">Current plan: <strong th:text="${user.subscriptionTier}">STARTER</strong></p>
+            <div th:each="sub : ${activeSubscriptions}" class="border-t border-gray-100 pt-4 mt-4">
+                <p class="text-sm text-gray-600 mb-2">
+                    Plan: <span th:text="${sub.planSlug}">STARTER</span>
+                    <span th:if="${sub.currentEnd}" class="text-gray-400"> · Renews <span th:text="${#temporals.format(sub.currentEnd, 'MMM d, yyyy')}">—</span></span>
+                </p>
+                <button type="button" th:attr="data-sub-id=${sub.razorpaySubscriptionId}"
+                        class="subscription-cancel-btn text-sm text-amber-600 hover:text-amber-700 font-medium">
+                    Cancel at period end
+                </button>
+            </div>
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm border border-red-100 p-6">
             <h2 class="text-lg font-semibold text-red-600 mb-2">Delete account</h2>
             <p class="text-sm text-gray-600 mb-4">
@@ -71,6 +87,31 @@
             </form>
         </div>
     </main>
+    <script th:if="${!activeSubscriptions.isEmpty()}">
+        document.querySelectorAll('.subscription-cancel-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var subId = this.getAttribute('data-sub-id');
+                if (!subId || !confirm('Cancel subscription at the end of the current billing period? You will keep access until then.')) return;
+                this.disabled = true;
+                fetch('/api/subscription/cancel', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ razorpaySubscriptionId: subId, atPeriodEnd: true })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.error || 'Failed to cancel');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function() { alert('Request failed'); btn.disabled = false; });
+            });
+        });
+    </script>
 </div>
 </body>
 </html>

@@ -386,12 +386,22 @@
                     </li>
                 </ul>
 
-                <a th:href="@{/oauth2/authorization/google}"
-                   class="mt-8 block text-center py-3 px-6
-                          rounded-lg bg-blue-600 text-white
-                          font-medium hover:bg-blue-700
-                          transition-colors shadow-md">
-                    Start Free Trial
+                <!-- Logged in + STARTER: current plan -->
+                <div sec:authorize="isAuthenticated()" th:if="${user != null && (user.subscriptionTier == 'STARTER' || user.subscriptionTier == 'PRO')}"
+                     class="mt-8 block text-center py-3 px-6 rounded-lg bg-gray-100 text-gray-600 font-medium border border-gray-200">
+                    Current plan
+                </div>
+                <!-- Logged in + FREE: Subscribe with Razorpay -->
+                <button sec:authorize="isAuthenticated()" th:if="${user == null || user.subscriptionTier == null || user.subscriptionTier == 'FREE'}"
+                        type="button" id="starter-subscribe-btn"
+                        class="mt-8 w-full py-3 px-6 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors shadow-md">
+                    Subscribe — ₹<span th:text="${starterAmountDisplay}">580</span>/month
+                </button>
+                <!-- Not logged in -->
+                <a sec:authorize="isAnonymous()"
+                   th:href="@{/oauth2/authorization/google}"
+                   class="mt-8 block text-center py-3 px-6 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors shadow-md">
+                    Sign in to subscribe
                 </a>
             </div>
 
@@ -459,6 +469,110 @@
 
     </div>
 </section>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script th:inline="javascript">
+(function() {
+    var btn = document.getElementById('starter-subscribe-btn');
+    if (!btn) return;
+    var amountDisplay = /*[[${starterAmountDisplay}]]*/ 580;
+    function resetBtn() {
+        btn.disabled = false;
+        btn.textContent = 'Subscribe — ₹' + amountDisplay + '/month';
+    }
+    function runSubscriptionCheckout() {
+        fetch('/api/payment/create-subscription-checkout?plan=STARTER', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) {
+                    runOneTimeCheckout();
+                    return;
+                }
+                var options = {
+                    key: data.keyId,
+                    subscription_id: data.subscriptionId,
+                    name: 'APIWatch',
+                    description: 'STARTER plan — 25 monitors, 1 min interval',
+                    handler: function(response) {
+                        fetch('/api/payment/verify-subscription', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_subscription_id: response.razorpay_subscription_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                        })
+                        .then(function(r) { return r.json(); })
+                        .then(function(result) {
+                            if (result.success) {
+                                window.location.href = '/dashboard?subscription=success';
+                            } else {
+                                alert(result.error || 'Verification failed');
+                                resetBtn();
+                            }
+                        })
+                        .catch(function() { alert('Verification failed'); resetBtn(); });
+                    }
+                };
+                var rzp = new Razorpay(options);
+                rzp.on('payment.failed', function() { resetBtn(); });
+                rzp.open();
+            })
+            .catch(function() {
+                alert('Could not start payment');
+                resetBtn();
+            });
+    }
+    function runOneTimeCheckout() {
+        fetch('/api/payment/create-order?plan=STARTER', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) {
+                    alert(data.error || 'Could not create order');
+                    resetBtn();
+                    return;
+                }
+                var options = {
+                    key: data.keyId,
+                    amount: data.amount,
+                    order_id: data.orderId,
+                    currency: data.currency || 'INR',
+                    name: 'APIWatch',
+                    description: 'STARTER plan',
+                    handler: function(response) {
+                        fetch('/api/payment/verify', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_order_id: response.razorpay_order_id,
+                                plan: 'STARTER'
+                            })
+                        })
+                        .then(function(r) { return r.json(); })
+                        .then(function(result) {
+                            if (result.success) window.location.href = '/dashboard?subscription=success';
+                            else { alert(result.error || 'Verification failed'); resetBtn(); }
+                        })
+                        .catch(function() { alert('Verification failed'); resetBtn(); });
+                    }
+                };
+                var rzp = new Razorpay(options);
+                rzp.on('payment.failed', function() { resetBtn(); });
+                rzp.open();
+            })
+            .catch(function() { alert('Could not start payment'); resetBtn(); });
+    }
+    btn.addEventListener('click', function() {
+        btn.disabled = true;
+        btn.textContent = 'Opening…';
+        runSubscriptionCheckout();
+    });
+})();
+</script>
 </div>
 </body>
 </html>

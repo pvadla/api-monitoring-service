@@ -19,3 +19,14 @@ apiwatch:
     enabled: ${APIWATCH_MAIL_ENABLED:true}
     from: ${APIWATCH_MAIL_FROM:no-reply@apiwatch.app}
     SMTP2GO_API_KEY: ${SMTP2GO_API_KEY:missing}
+  contact:
+    to: ${APIWATCH_CONTACT_TO:support@apiwatch.app}
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+  starter-amount-paise: ${RAZORPAY_STARTER_AMOUNT_PAISE:58000}
+  plan:
+    starter: ${RAZORPAY_PLAN_STARTER}
+    pro: ${RAZORPAY_PLAN_PRO}
