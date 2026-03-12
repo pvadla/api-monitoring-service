@@ -52,6 +52,13 @@ public class HomeController {
         return "index";  // loads index.html
     }
 
+    @GetMapping("/about")
+    public String about(Model model) {
+        model.addAttribute("showFooter", true);
+        model.addAttribute("activeNav", "about");
+        return "about";
+    }
+
     @GetMapping("/dashboard")
     public String dashboard(
             @AuthenticationPrincipal OAuth2User principal,

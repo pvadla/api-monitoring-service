@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: html('About - APIWatch', ~{::#page-content}, ~{})}">
+<body>
+<div id="page-content">
+
+    <main class="max-w-5xl mx-auto px-6 pt-28 pb-20 space-y-16">
+
+        <!-- Hero / Intro -->
+        <section class="text-center">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                About <span class="text-blue-600">APIWatch</span>
+            </h1>
+            <p class="text-lg text-gray-500 max-w-3xl mx-auto">
+                APIWatch is a simple monitoring tool built for developers who want
+                signal, not noise. It helps you catch outages before your users do,
+                understand incidents clearly, and share transparent status pages.
+            </p>
+        </section>
+
+        <!-- Story / Why -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-3">Why we built APIWatch</h2>
+                <p class="text-gray-600 mb-3">
+                    Most monitoring tools are heavy, noisy, or designed for large ops teams.
+                    APIWatch focuses on the essentials: uptime, response times, incidents,
+                    and a status page your customers can actually understand.
+                </p>
+                <p class="text-gray-600">
+                    Our goal is to give solo developers and small teams production‑grade
+                    monitoring without the complexity and cost of enterprise tools.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Road so far</h3>
+                <ol class="space-y-3 text-sm text-gray-600">
+                    <li>
+                        <span class="font-semibold text-gray-900">MVP:</span>
+                        HTTP uptime checks, incidents, email alerts, status page.
+                    </li>
+                    <li>
+                        <span class="font-semibold text-gray-900">Phase 2:</span>
+                        Heartbeat monitoring, SSL expiry alerts, body assertions.
+                    </li>
+                    <li>
+                        <span class="font-semibold text-gray-900">Today:</span>
+                        Focused on polishing the dashboard, notifications, and
+                        upcoming subscription features.
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Upcoming Features -->
+        <section>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-2">Upcoming features</h2>
+            <p class="text-gray-500 mb-6">
+                Here’s what we’re actively working on next. These may change based on
+                your feedback, but this is the current roadmap.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Team access & collaboration</h3>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Invite teammates, share dashboards, and manage incidents together
+                        with roles and simple access control.
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                        In planning
+                    </span>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Advanced alerting</h3>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Smarter rules (only alert on repeated failures), quiet hours,
+                        and more channels beyond email (Slack, webhooks).
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                        On the roadmap
+                    </span>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Richer status pages</h3>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Custom branding, incident communication templates, and historical
+                        uptime charts you can embed anywhere.
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                        Coming soon
+                    </span>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Deeper metrics</h3>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Percentiles (p95 / p99), error-rate views, and simple SLO
+                        reporting to help you track reliability over time.
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                        Exploring
+                    </span>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">More regions & checks</h3>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Run checks from multiple regions, and add DNS/TLS and port checks
+                        alongside HTTP monitors.
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                        Future
+                    </span>
+                </div>
+
+                <!-- AI incident summaries -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">AI incident summaries</h3>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Let AI read your incident history and checks to generate clear,
+                        human‑friendly summaries you can share with your team or add to
+                        post‑mortems.
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                        Upcoming
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feedback -->
+        <section class="border-t border-gray-100 pt-10">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-3">Help shape the roadmap</h2>
+            <p class="text-gray-600 mb-4">
+                APIWatch is still early and your feedback matters a lot. If there’s a
+                feature you’d love to see next, reach out and tell us how you monitor
+                your APIs today.
+            </p>
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+                <a th:href="@{/contact}"
+                   class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">
+                    Share a feature request
+                </a>
+                <span class="text-gray-500">
+                    or email us at <span class="font-medium text-gray-800">support@apiwatch.app</span>
+                </span>
+            </div>
+        </section>
+
+    </main>
+
+</div>
+</body>
+</html>
+
