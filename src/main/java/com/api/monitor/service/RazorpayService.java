@@ -28,7 +28,13 @@ public class RazorpayService {
 
     private static final String RAZORPAY_BASE = "https://api.razorpay.com/v1";
 
-    private final WebClient webClient;
+    /**
+     * WebClient for calling Razorpay. We build it locally so this service does not
+     * depend on any external WebClient bean in environments where it might not exist.
+     */
+    private final WebClient webClient = WebClient.builder()
+            .codecs(cfg -> cfg.defaultCodecs().maxInMemorySize(512 * 1024))
+            .build();
 
     @Value("${razorpay.key-id:}")
     private String keyId;
