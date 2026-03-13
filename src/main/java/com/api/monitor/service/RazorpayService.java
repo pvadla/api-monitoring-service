@@ -14,23 +14,20 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Razorpay API: orders (one-time), subscriptions (plans, customers, subscriptions), webhook verification.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class RazorpayService {
 
     private static final String RAZORPAY_BASE = "https://api.razorpay.com/v1";
 
     /**
-     * WebClient for calling Razorpay. We build it locally so this service does not
-     * depend on any external WebClient bean in environments where it might not exist.
+     * WebClient for calling Razorpay. Built locally so this service does not
+     * depend on any external WebClient bean.
      */
     private final WebClient webClient = WebClient.builder()
             .codecs(cfg -> cfg.defaultCodecs().maxInMemorySize(512 * 1024))
