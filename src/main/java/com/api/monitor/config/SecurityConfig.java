@@ -44,6 +44,7 @@ public class SecurityConfig {
                     "/h2-console/login.do/**",
                     "/status/**",
                     "/contact",
+                    "/about",
                     "/heartbeat/**",
                     "/webhooks/**"
                 ).permitAll()
