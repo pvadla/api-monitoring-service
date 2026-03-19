@@ -6,6 +6,25 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title th:text="${title}">APIWatch</title>
+    <meta name="description"
+          th:content="'APIWatch helps you monitor your APIs 24/7. Detect outages, get instant alerts, and share transparent status pages.'"/>
+    <meta name="keywords"
+          content="API monitoring, uptime monitoring, incident tracking, status page, response time, uptime alerts, web status"/>
+    <meta name="robots" content="index,follow"/>
+    <meta name="theme-color" content="#2563EB"/>
+
+    <!-- Open Graph -->
+    <meta property="og:title" th:content="${title}"/>
+    <meta property="og:description"
+          th:content="'APIWatch helps you monitor your APIs 24/7. Detect outages, get instant alerts, and share transparent status pages.'"/>
+    <meta property="og:type" content="website"/>
+    <meta property="og:site_name" content="APIWatch"/>
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary"/>
+    <meta name="twitter:title" th:content="${title}"/>
+    <meta name="twitter:description"
+          th:content="'APIWatch helps you monitor your APIs 24/7. Detect outages, get instant alerts, and share transparent status pages.'"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" th:href="@{/css/style.css}"/>
     <!-- Page-specific head content (e.g. extra scripts/libs) -->
@@ -62,9 +81,9 @@
 
         <!-- ── Anonymous nav links ── -->
         <div sec:authorize="isAnonymous()" class="hidden md:flex items-center space-x-8">
-            <a href="#features" class="text-gray-600 hover:text-blue-600 font-medium">Features</a>
-            <a href="#how-it-works" class="text-gray-600 hover:text-blue-600 font-medium">How It Works</a>
-            <a href="#pricing" class="text-gray-600 hover:text-blue-600 font-medium">Pricing</a>
+            <a th:href="@{/#features}" class="text-gray-600 hover:text-blue-600 font-medium">Features</a>
+            <a th:href="@{/#how-it-works}" class="text-gray-600 hover:text-blue-600 font-medium">How It Works</a>
+            <a th:href="@{/#pricing}" class="text-gray-600 hover:text-blue-600 font-medium">Pricing</a>
             <a th:href="@{/about}" class="text-gray-600 hover:text-blue-600 font-medium">About</a>
             <a th:href="@{/contact}" class="text-gray-600 hover:text-blue-600 font-medium">Contact</a>
         </div>
@@ -116,8 +135,8 @@
             <span class="text-white font-bold">APIWatch</span>
         </a>
         <div class="flex space-x-8 text-sm">
-            <a href="#features" class="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+            <a th:href="@{/#features}" class="hover:text-white transition-colors">Features</a>
+            <a th:href="@{/#pricing}" class="hover:text-white transition-colors">Pricing</a>
             <a th:href="@{/contact}" class="hover:text-white transition-colors">Contact</a>
         </div>
         <div class="text-sm">© 2026 APIWatch. All rights reserved.</div>
