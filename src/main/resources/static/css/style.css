@@ -7,3 +7,21 @@ html {
 section {
     scroll-margin-top: 80px;
 }
+
+/*
+ * Make the main UI span the full viewport width.
+ * Tailwind's `max-w-*` utilities constrain content; overriding them here
+ * ensures pages are not displayed in a narrow centered column.
+ */
+.max-w-7xl,
+.max-w-6xl,
+.max-w-5xl,
+.max-w-4xl,
+.max-w-3xl,
+.max-w-2xl {
+    max-width: 100% !important;
+}
+
+body {
+    min-height: 100vh;
+}
