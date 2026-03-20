@@ -108,6 +108,8 @@
                      class="w-9 h-9 rounded-full border-2 border-blue-100 object-cover"/>
                 <span class="text-gray-700 font-medium hidden md:block"
                       th:text="${user != null ? user.name : ''}">User</span>
+                <span class="hidden sm:inline-flex items-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 px-3 py-1 text-xs font-semibold"
+                      th:text="${user != null and user.subscriptionTier != null ? 'Plan: ' + user.subscriptionTier : 'Plan: FREE'}">Plan: FREE</span>
                 <form th:action="@{/logout}" method="post">
                     <button type="submit" class="text-sm text-gray-400 hover:text-red-500 transition-colors">
                         Logout
