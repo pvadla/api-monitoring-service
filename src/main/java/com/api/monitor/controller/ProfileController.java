@@ -10,8 +10,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,7 +20,6 @@ import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.IncidentRepository;
-import com.api.monitor.repository.SubscriptionRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -36,17 +33,6 @@ public class ProfileController {
     private final EndpointRepository endpointRepository;
     private final EndpointCheckRepository endpointCheckRepository;
     private final IncidentRepository incidentRepository;
-    private final SubscriptionRepository subscriptionRepository;
-
-    @GetMapping
-    public String form(@AuthenticationPrincipal OAuth2User principal, Model model) {
-        User user = getUser(principal);
-        model.addAttribute("user", user);
-        model.addAttribute("activeNav", "profile");
-        model.addAttribute("activeSubscriptions",
-            subscriptionRepository.findByUserAndStatusIn(user, List.of("active", "authenticated")));
-        return "profile";
-    }
 
     @PostMapping
     public String save(

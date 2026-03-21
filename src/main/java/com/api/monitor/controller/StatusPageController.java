@@ -3,27 +3,21 @@ package com.api.monitor.controller;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.api.monitor.entity.Endpoint;
-import com.api.monitor.entity.Incident;
 import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointRepository;
-import com.api.monitor.repository.IncidentRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * Public status page per user: /status/{slug}
- * No authentication required.
+ * Embed widgets for public status. The HTML status page is the React SPA at {@code /status/{slug}}.
  */
 @Controller
 @RequestMapping("/status")
@@ -32,43 +26,6 @@ public class StatusPageController {
 
     private final UserRepository userRepository;
     private final EndpointRepository endpointRepository;
-    private final IncidentRepository incidentRepository;
-
-    /** Public status page: /status/{slug} */
-    @GetMapping("/{slug}")
-    public String statusPage(
-            @PathVariable String slug,
-            @AuthenticationPrincipal OAuth2User principal,
-            Model model) {
-        User pageOwner = userRepository.findByStatusSlug(slug)
-                .orElseThrow(() -> new RuntimeException("Status page not found"));
-
-        List<Endpoint> endpoints = endpointRepository.findByUserAndShowOnStatusPageTrue(pageOwner);
-        List<Incident> incidents = incidentRepository.findLatestByUser(pageOwner, 50);
-
-        String title = pageOwner.getStatusPageTitle() != null && !pageOwner.getStatusPageTitle().isBlank()
-                ? pageOwner.getStatusPageTitle()
-                : "Status";
-        String logoUrl = pageOwner.getStatusPageLogoUrl();
-
-        long upCount = endpoints.stream().filter(e -> Boolean.TRUE.equals(e.getIsUp())).count();
-        String overallStatusLabel = endpoints.isEmpty() ? "No endpoints configured"
-                : (upCount == endpoints.size() ? "All Systems Operational" : "Some Issues");
-        String statusKind = endpoints.isEmpty() ? "none" : (upCount == endpoints.size() ? "all-up" : "issues");
-
-        if (principal != null) {
-            userRepository.findByEmail(principal.getAttribute("email")).ifPresent(u -> model.addAttribute("user", u));
-        }
-        model.addAttribute("slug", slug);
-        model.addAttribute("pageTitle", title);
-        model.addAttribute("logoUrl", logoUrl);
-        model.addAttribute("endpoints", endpoints);
-        model.addAttribute("incidents", incidents);
-        model.addAttribute("overallStatusLabel", overallStatusLabel);
-        model.addAttribute("statusKind", statusKind);
-
-        return "status";
-    }
 
     /** Embed widget: badge for users' websites. Returns HTML snippet. */
     @GetMapping(value = "/{slug}/embed", produces = "text/html")

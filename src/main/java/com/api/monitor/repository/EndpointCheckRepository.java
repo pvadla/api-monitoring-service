@@ -18,4 +18,7 @@ public interface EndpointCheckRepository extends JpaRepository<EndpointCheck, Lo
 
     // Delete all checks for a list of endpoints (for account deletion)
     void deleteByEndpointIn(List<Endpoint> endpoints);
+
+    /** Delete all checks for one endpoint (before deleting the endpoint). */
+    void deleteByEndpoint(Endpoint endpoint);
 }

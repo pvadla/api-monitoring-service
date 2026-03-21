@@ -1,94 +1,16 @@
 package com.api.monitor.controller;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.stereotype.Controller;
 
-import com.api.monitor.entity.Endpoint;
-import com.api.monitor.entity.HeartbeatMonitor;
-import com.api.monitor.entity.User;
-import com.api.monitor.repository.EndpointRepository;
-import com.api.monitor.repository.HeartbeatMonitorRepository;
-import com.api.monitor.repository.UserRepository;
-import com.api.monitor.service.RazorpayService;
-
-import lombok.RequiredArgsConstructor;
-
+/**
+ * Legacy/debug endpoints only. SPA routes ({@code /}, {@code /about}, {@code /dashboard}, etc.) are served
+ * from {@code classpath:/static} via {@link com.api.monitor.config.SpaWebMvcConfigurer}.
+ */
 @Controller
-@RequiredArgsConstructor
 public class HomeController {
-
-    private final UserRepository userRepository;
-    private final EndpointRepository endpointRepository;
-    private final HeartbeatMonitorRepository heartbeatMonitorRepository;
-    private final RazorpayService razorpayService;
-
-    @Value("${apiwatch.app.base-url:http://localhost:8080}")
-    private String baseUrl;
-
-    @GetMapping("/")
-    public String home(
-            @AuthenticationPrincipal OAuth2User principal,
-            @RequestParam(value = "accountDeleted", required = false) Boolean accountDeleted,
-            Model model) {
-        if (principal != null) {
-            String email = principal.getAttribute("email");
-            userRepository.findByEmail(email).ifPresent(u -> model.addAttribute("user", u));
-            String displayName = principal.getAttribute("name");
-            model.addAttribute("userDisplayName", displayName != null ? displayName : "User");
-        }
-        if (Boolean.TRUE.equals(accountDeleted)) {
-            model.addAttribute("success", "Your account and all monitoring data have been deleted. You can sign in again with Google anytime.");
-        }
-        model.addAttribute("showFooter", true);
-        model.addAttribute("starterAmountDisplay", razorpayService.getStarterAmountPaise() / 100);
-        return "index";  // loads index.html
-    }
-
-    @GetMapping("/about")
-    public String about(Model model) {
-        model.addAttribute("showFooter", true);
-        model.addAttribute("activeNav", "about");
-        return "about";
-    }
-
-    @GetMapping("/dashboard")
-    public String dashboard(
-            @AuthenticationPrincipal OAuth2User principal,
-            @RequestParam(value = "subscription", required = false) String subscription,
-            Model model) {
-        String email = principal.getAttribute("email");
-        User user = userRepository.findByEmail(email).orElseThrow();
-
-        if ("success".equals(subscription)) {
-            model.addAttribute("success", "Subscription activated! You now have access to the STARTER plan.");
-        }
-
-        long total = endpointRepository.countByUser(user);
-        long upCount = endpointRepository.countByUserAndIsUp(user, true);
-        long downCount = endpointRepository.countByUserAndIsUp(user, false);
-
-        List<Endpoint> endpoints = endpointRepository.findByUser(user);
-        List<HeartbeatMonitor> heartbeats = heartbeatMonitorRepository.findByUser(user);
-
-        model.addAttribute("user", user);
-        model.addAttribute("endpointCount", total);
-        model.addAttribute("upCount", upCount);
-        model.addAttribute("downCount", downCount);
-        model.addAttribute("endpoints", endpoints);
-        model.addAttribute("heartbeats", heartbeats);
-        model.addAttribute("baseUrl", baseUrl);
-        model.addAttribute("activeNav", "dashboard");
-
-        return "dashboard";  // loads dashboard.html
-    }
 
     @GetMapping("/debug-env")
     @ResponseBody

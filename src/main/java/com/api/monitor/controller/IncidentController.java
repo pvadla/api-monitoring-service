@@ -5,8 +5,6 @@ import java.time.LocalDateTime;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,16 +26,6 @@ public class IncidentController {
 
     private final UserRepository userRepository;
     private final IncidentRepository incidentRepository;
-
-    @GetMapping
-    public String list(@AuthenticationPrincipal OAuth2User principal, Model model) {
-        User user = getUser(principal);
-        var incidents = incidentRepository.findLatestByUser(user, 100);
-        model.addAttribute("user", user);
-        model.addAttribute("incidents", incidents);
-        model.addAttribute("activeNav", "incidents");
-        return "incidents";
-    }
 
     @PostMapping("/{id}/resolve")
     public String resolve(
