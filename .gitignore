@@ -1,12 +1,13 @@
 HELP.md
 target/
 
-### Frontend (Vite / Phase 1+)
+### Frontend (Vite)
+# Maven runs npm install + npm run build; copy is only to target/classes/static (see pom.xml). Never commit build output.
 frontend/node_modules/
 frontend/dist/
 frontend/.env
 frontend/.env.local
-# When SPA is copied into Spring for production — do not commit Vite output (keep hand-authored files under static/css/)
+# If someone copies SPA into src/main/resources/static by mistake — ignore generated shell (legacy css/ may stay tracked)
 src/main/resources/static/index.html
 src/main/resources/static/assets/
 .mvn/wrapper/maven-wrapper.jar

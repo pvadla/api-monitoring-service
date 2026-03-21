@@ -27,10 +27,26 @@ Anonymous access for SPA shell and OAuth flow:
 
 ## Build
 
-1. `cd frontend && npm run build`
-2. `mvn package` — `maven-resources-plugin` copies `frontend/dist/**` → `target/classes/static/` during `prepare-package`.
+From the **repository root** (single command):
 
-`mvn compile` does not copy the SPA; use `mvn package` (or copy `frontend/dist` into `src/main/resources/static` manually for experiments).
+```bash
+mvn compile
+```
+
+(or `mvn package`)
+
+1. **`frontend-maven-plugin`** (`generate-resources`): installs Node/npm into `target/node` (first run downloads), runs `npm install` and `npm run build` in `frontend/`, producing **`frontend/dist/`** (gitignored).
+2. **`maven-resources-plugin`** (`process-resources`): copies **`frontend/dist/**`** → **`target/classes/static/`** (only in the build output; not committed).
+
+**Skip frontend build** (e.g. Java-only work; you must already have `frontend/dist/`):
+
+```bash
+mvn compile -Dskip.npm=true
+```
+
+**Daily UI work** still uses `cd frontend && npm run dev` (Vite); Maven is for reproducible builds and CI.
+
+**Note:** `src/main/resources/static/` in Git may only contain legacy files (e.g. `css/`). Do not commit `frontend/dist/`, `index.html`, or `assets/` under `static/` — see root `.gitignore`.
 
 ## Removed / legacy
 

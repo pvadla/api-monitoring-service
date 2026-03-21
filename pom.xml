@@ -31,6 +31,10 @@
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <!-- com.github.eirslett:frontend-maven-plugin — run npm install + npm run build before copying SPA -->
+        <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
+        <!-- Set -Dskip.npm=true to skip Node/npm (requires existing frontend/dist for copy-resources) -->
+        <skip.npm>false</skip.npm>
     </properties>
     <dependencies>
 
@@ -141,14 +145,58 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-            <!-- Copy Vite build into classpath:/static for SPA (run: cd frontend && npm run build) -->
+            <!-- Install Node/npm, then npm install + npm run build (generates frontend/dist). Runs before copy-resources. -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>${frontend-maven-plugin.version}</version>
+                <configuration>
+                    <workingDirectory>${project.basedir}/frontend</workingDirectory>
+                    <installDirectory>${project.basedir}/target</installDirectory>
+                    <skip>${skip.npm}</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v20.18.0</nodeVersion>
+                            <npmVersion>10.8.2</npmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-install</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-run-build</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Copy Vite output only into build (classpath:/static). Do not commit frontend/dist or copied static SPA files. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>copy-spa-frontend</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>

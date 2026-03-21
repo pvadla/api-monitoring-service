@@ -30,6 +30,8 @@ These exist today; React should call them as-is.
 | `POST` | `/api/subscription/cancel` | User | Body: `razorpaySubscriptionId`, `atPeriodEnd` |
 | `POST` | `/api/subscription/change-plan` | User | Body: `newPlanSlug` |
 
+**React SPA — Razorpay Checkout:** dynamic script load, `callbacksRef`, and `mountRef` pattern are documented in [razorpay-checkout.md](razorpay-checkout.md).
+
 **Subscription item shape** (from `GET /api/subscription/current`):
 
 ```json
