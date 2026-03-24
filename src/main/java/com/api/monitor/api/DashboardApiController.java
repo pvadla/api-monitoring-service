@@ -18,6 +18,7 @@ import com.api.monitor.api.dto.UserResponse;
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.HeartbeatMonitor;
 import com.api.monitor.entity.User;
+import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
 import com.api.monitor.repository.UserRepository;
@@ -31,6 +32,7 @@ public class DashboardApiController {
 
     private final UserRepository userRepository;
     private final EndpointRepository endpointRepository;
+    private final EndpointCheckRepository endpointCheckRepository;
     private final HeartbeatMonitorRepository heartbeatMonitorRepository;
 
     @Value("${apiwatch.app.base-url:http://localhost:8080}")
@@ -67,7 +69,12 @@ public class DashboardApiController {
                 total,
                 upCount,
                 downCount,
-                endpoints.stream().map(EndpointResponse::fromEntity).toList(),
+                endpoints.stream()
+                        .map(ep -> EndpointResponse.fromEntity(
+                                ep,
+                                EndpointResponse.recentChecksUpFromRows(
+                                        endpointCheckRepository.findTop15ByEndpointOrderByCheckedAtDesc(ep))))
+                        .toList(),
                 heartbeats.stream().map(HeartbeatMonitorResponse::fromEntity).toList(),
                 baseUrl,
                 flashSuccess

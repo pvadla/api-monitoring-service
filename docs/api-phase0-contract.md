@@ -106,6 +106,7 @@ Omit internal fields (`razorpayCustomerId`, etc.) unless a product needs them.
 | `showOnStatusPage` | boolean | |
 | `expectedBodySubstring` | string | nullable |
 | `sslExpiresAt` | string (ISO) | nullable |
+| `recentChecksUp` | array of boolean or null | length 15; last HTTP checks oldest→newest; `null` pads when fewer than 15 checks exist. Omitted or all-null on some responses. |
 
 ### 3.3 `HeartbeatMonitorDto`
 

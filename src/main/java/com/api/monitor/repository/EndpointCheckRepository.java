@@ -12,6 +12,9 @@ public interface EndpointCheckRepository extends JpaRepository<EndpointCheck, Lo
     // Last N checks for a given endpoint (for the graph)
     List<EndpointCheck> findTop50ByEndpointOrderByCheckedAtDesc(Endpoint endpoint);
 
+    /** Newest first; used for dashboard sparkline (last 15 checks). */
+    List<EndpointCheck> findTop15ByEndpointOrderByCheckedAtDesc(Endpoint endpoint);
+
     // Count total checks and failures (for uptime %)
     long countByEndpoint(Endpoint endpoint);
     long countByEndpointAndIsUp(Endpoint endpoint, Boolean isUp);

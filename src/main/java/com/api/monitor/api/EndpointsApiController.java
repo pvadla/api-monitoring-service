@@ -192,7 +192,10 @@ public class EndpointsApiController {
                 .toList();
 
         return new EndpointDetailResponse(
-                EndpointResponse.fromEntity(endpoint),
+                EndpointResponse.fromEntity(
+                        endpoint,
+                        EndpointResponse.recentChecksUpFromRows(
+                                endpointCheckRepository.findTop15ByEndpointOrderByCheckedAtDesc(endpoint))),
                 checkDtos,
                 String.format("%.2f", uptimePct),
                 String.format("%.0f", avgResponseMs));
