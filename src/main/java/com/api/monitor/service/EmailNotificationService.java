@@ -131,7 +131,7 @@ public class EmailNotificationService {
         log.info("SSL expiry email sent to {} for endpoint {}", user.getEmail(), endpoint.getId());
     }
 
-    public void sendHeartbeatMissedEmail(HeartbeatMonitor hb) {
+    public void sendHeartbeatMissedEmail(HeartbeatMonitor hb, Incident incident) {
         if (!enabled) {
             log.debug("Email disabled; skipping heartbeat missed email.");
             return;
@@ -146,23 +146,61 @@ public class EmailNotificationService {
             return;
         }
 
-        String subject = "APIWatch: heartbeat missed for " + safe(hb.getName());
+        String subject = "APIWatch alert: heartbeat missed for " + safe(hb.getName());
         String lastPing = hb.getLastPingAt() != null ? formatTime(hb.getLastPingAt()) : "never";
         String interval = hb.getExpectedIntervalMinutes() != null ? hb.getExpectedIntervalMinutes() + " minutes" : "unknown";
+        String incidentId = incident != null && incident.getId() != null ? String.valueOf(incident.getId()) : "—";
 
         String body = ""
                 + "Hi " + safe(user.getName() != null ? user.getName() : "there") + ",\n\n"
                 + "APIWatch has not received a recent heartbeat from one of your jobs.\n\n"
                 + "Heartbeat name: " + safe(hb.getName()) + "\n"
                 + "Expected interval: " + interval + "\n"
-                + "Last ping: " + lastPing + "\n\n"
-                + "If this job has failed or been disabled, please investigate. If you no longer need this monitor,\n"
-                + "you can delete it from the Heartbeats page.\n\n"
-                + "Heartbeats page: " + baseUrl + "/heartbeats\n\n"
+                + "Last ping: " + lastPing + "\n"
+                + "Incident ID: " + incidentId + "\n\n"
+                + "What you can do next:\n"
+                + "- Check that the job/script sending the heartbeat ping is still running.\n"
+                + "- Verify the ping URL is correct and reachable from your environment.\n"
+                + "- Review logs for errors in the job itself.\n\n"
+                + "Dashboard: " + baseUrl + "/dashboard\n\n"
                 + "— APIWatch\n";
 
         sendEmail(user.getEmail(), subject, body);
         log.info("Heartbeat missed email sent to {} for monitor {}", user.getEmail(), hb.getId());
+    }
+
+    public void sendHeartbeatRecoveryEmail(HeartbeatMonitor hb, Incident incident) {
+        if (!enabled) {
+            log.debug("Email disabled; skipping heartbeat recovery email.");
+            return;
+        }
+        if (smtp2goApiKey == null || smtp2goApiKey.isBlank()) {
+            log.warn("SMTP2GO_API_KEY not set; skipping heartbeat recovery email.");
+            return;
+        }
+        User user = hb.getUser();
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            log.warn("No user email; skipping heartbeat recovery email. monitor={}", hb.getId());
+            return;
+        }
+
+        String subject = "APIWatch: heartbeat resumed for " + safe(hb.getName());
+        String incidentId = incident != null && incident.getId() != null ? String.valueOf(incident.getId()) : "—";
+        String downtime = incident != null && incident.getDowntimeDurationMinutes() != null
+                ? incident.getDowntimeDurationMinutes() + " minutes"
+                : "—";
+
+        String body = ""
+                + "Hi " + safe(user.getName() != null ? user.getName() : "there") + ",\n\n"
+                + "Good news — APIWatch has received a new heartbeat ping from your job.\n\n"
+                + "Heartbeat name: " + safe(hb.getName()) + "\n"
+                + "Incident ID: " + incidentId + "\n"
+                + "Downtime: " + downtime + "\n\n"
+                + "Dashboard: " + baseUrl + "/dashboard\n\n"
+                + "— APIWatch\n";
+
+        sendEmail(user.getEmail(), subject, body);
+        log.info("Heartbeat recovery email sent to {} for monitor {}", user.getEmail(), hb.getId());
     }
 
     public void sendContactEmail(String fromName, String fromEmail, String subject, String message) {

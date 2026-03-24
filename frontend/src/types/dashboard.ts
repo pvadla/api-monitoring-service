@@ -23,6 +23,10 @@ export type HeartbeatRow = {
   expectedIntervalMinutes: number
   lastPingAt: string | null
   isActive: boolean | null
+  /** null = pending (never pinged, not yet overdue); true = up; false = down/missed */
+  isUp: boolean | null
+  /** Last 15 scheduler evaluations, oldest → newest. null = slot not filled yet. */
+  recentChecksUp?: (boolean | null)[] | null
 }
 
 /** Dashboard monitor filter: HTTP checks vs inbound heartbeat pings. */
@@ -37,4 +41,5 @@ export type DashboardPayload = {
   heartbeats: HeartbeatRow[]
   baseUrl: string
   flashSuccess: string | null
+  openIncidentCount: number
 }

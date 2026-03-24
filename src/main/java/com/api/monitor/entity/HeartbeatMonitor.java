@@ -42,6 +42,13 @@ public class HeartbeatMonitor {
     @Column(name = "last_notified_at")
     private LocalDateTime lastNotifiedAt;
 
+    /**
+     * Current up/down status, updated by the scheduler on every check cycle.
+     * null = pending (monitor created but no ping ever received and not yet overdue).
+     */
+    @Column(name = "is_up")
+    private Boolean isUp;
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 

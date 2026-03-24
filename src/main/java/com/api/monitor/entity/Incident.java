@@ -46,12 +46,17 @@ public class Incident {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    /** For auto-incidents: which endpoint caused this. Null for manual incidents. */
+    /** For auto-incidents: which endpoint caused this. Null for manual/heartbeat incidents. */
     @ManyToOne
     @JoinColumn(name = "endpoint_id")
     private Endpoint endpoint;
 
-    /** Auto-incident: e.g. "Timeout", "HTTP 5xx", "DNS failure", "Connection refused". */
+    /** For heartbeat auto-incidents: which heartbeat monitor missed its ping. */
+    @ManyToOne
+    @JoinColumn(name = "heartbeat_monitor_id")
+    private HeartbeatMonitor heartbeatMonitor;
+
+    /** Auto-incident: e.g. "Timeout", "HTTP 5xx", "DNS failure", "Connection refused", "Heartbeat missed". */
     @Column(name = "failure_reason", length = 255)
     private String failureReason;
 

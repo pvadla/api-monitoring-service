@@ -13,5 +13,7 @@ public record DashboardResponse(
         List<EndpointResponse> endpoints,
         List<HeartbeatMonitorResponse> heartbeats,
         String baseUrl,
-        String flashSuccess
+        String flashSuccess,
+        /** Total open (unresolved) incidents for this user. */
+        long openIncidentCount
 ) {}

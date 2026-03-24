@@ -17,9 +17,12 @@ import com.api.monitor.api.dto.ApiMessageResponse;
 import com.api.monitor.api.dto.CreateHeartbeatRequest;
 import com.api.monitor.api.dto.HeartbeatMonitorResponse;
 import com.api.monitor.entity.HeartbeatMonitor;
+import com.api.monitor.entity.Incident;
 import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointRepository;
+import com.api.monitor.repository.HeartbeatCheckRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
+import com.api.monitor.repository.IncidentRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,8 @@ public class HeartbeatsApiController {
     private final HeartbeatMonitorRepository heartbeatRepository;
     private final EndpointRepository endpointRepository;
     private final UserRepository userRepository;
+    private final IncidentRepository incidentRepository;
+    private final HeartbeatCheckRepository heartbeatCheckRepository;
 
     @PostMapping
     public ResponseEntity<?> create(
@@ -76,6 +81,14 @@ public class HeartbeatsApiController {
         return heartbeatRepository.findById(id)
                 .filter(h -> h.getUser().getId().equals(user.getId()))
                 .map(h -> {
+                    // Close any open incidents before removing the monitor
+                    incidentRepository.findByHeartbeatMonitorAndResolvedAtIsNull(h)
+                            .forEach(incident -> {
+                                incident.setResolvedAt(java.time.LocalDateTime.now());
+                                incident.setStatus(Incident.IncidentStatus.RESOLVED);
+                                incidentRepository.save(incident);
+                            });
+                    heartbeatCheckRepository.deleteByHeartbeatMonitor(h);
                     heartbeatRepository.delete(h);
                     return ResponseEntity.noContent().build();
                 })

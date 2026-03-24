@@ -15,10 +15,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.api.monitor.entity.HeartbeatMonitor;
+import com.api.monitor.entity.Incident;
 import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointRepository;
+import com.api.monitor.repository.HeartbeatCheckRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
+import com.api.monitor.repository.IncidentRepository;
 import com.api.monitor.repository.UserRepository;
+import com.api.monitor.service.MonitoringService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +33,9 @@ public class HeartbeatController {
     private final HeartbeatMonitorRepository heartbeatRepository;
     private final EndpointRepository endpointRepository;
     private final UserRepository userRepository;
+    private final IncidentRepository incidentRepository;
+    private final HeartbeatCheckRepository heartbeatCheckRepository;
+    private final MonitoringService monitoringService;
 
     @GetMapping("/heartbeats")
     public String list() {
@@ -74,7 +81,17 @@ public class HeartbeatController {
         User user = getUser(principal);
         heartbeatRepository.findById(id)
                 .filter(h -> h.getUser().getId().equals(user.getId()))
-                .ifPresent(heartbeatRepository::delete);
+                .ifPresent(h -> {
+                    // Close any open incidents before removing the monitor
+                    incidentRepository.findByHeartbeatMonitorAndResolvedAtIsNull(h)
+                            .forEach(incident -> {
+                                incident.setResolvedAt(java.time.LocalDateTime.now());
+                                incident.setStatus(Incident.IncidentStatus.RESOLVED);
+                                incidentRepository.save(incident);
+                            });
+                    heartbeatCheckRepository.deleteByHeartbeatMonitor(h);
+                    heartbeatRepository.delete(h);
+                });
 
         return "redirect:/dashboard";
     }
@@ -89,8 +106,11 @@ public class HeartbeatController {
         return heartbeatRepository.findByToken(token)
                 .map(hb -> {
                     hb.setLastPingAt(LocalDateTime.now());
-                    hb.setLastNotifiedAt(null); // clear any previous alert
+                    hb.setIsUp(true);
+                    hb.setLastNotifiedAt(null); // clear so next miss will re-alert
                     heartbeatRepository.save(hb);
+                    // Resolve any open incident and send recovery email
+                    monitoringService.resolveHeartbeatIncident(hb);
                     return "OK";
                 })
                 .orElse("Unknown heartbeat token");

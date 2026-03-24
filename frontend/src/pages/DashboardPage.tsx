@@ -38,6 +38,7 @@ import { formatShortDate } from '@/lib/format.ts'
 import { cn } from '@/lib/utils.ts'
 import type { DashboardPayload, EndpointRow, MonitorTypeFilter } from '@/types/dashboard.ts'
 
+
 function dashboardQueryKey(subscription: string | null) {
   return ['dashboard', subscription ?? ''] as const
 }
@@ -87,10 +88,18 @@ export function DashboardPage() {
     const httpCount = ep.length
     const hbCount = hb.length
     const httpUp = ep.filter((e) => e.isUp).length
-    const hbWithPing = hb.filter((h) => h.lastPingAt != null).length
+    const httpDown = ep.filter((e) => e.isUp === false).length
+    const hbUp = hb.filter((h) => h.isUp === true).length
+    const hbDown = hb.filter((h) => h.isUp === false).length
+    const hbPending = hb.filter((h) => h.isUp === null).length
     const httpSuccessPct = httpCount ? Math.round((httpUp / httpCount) * 100) : 0
-    const hbSuccessPct = hbCount ? Math.round((hbWithPing / hbCount) * 100) : 0
-    return { httpCount, hbCount, httpSuccessPct, hbSuccessPct }
+    const hbSuccessPct = hbCount ? Math.round((hbUp / hbCount) * 100) : 0
+    return {
+      httpCount, httpUp, httpDown,
+      hbCount, hbUp, hbDown, hbPending,
+      httpSuccessPct, hbSuccessPct,
+      openIncidentCount: data.openIncidentCount ?? 0,
+    }
   }, [data])
 
   const toggleMutation = useMutation({
@@ -399,9 +408,8 @@ export function DashboardPage() {
                               Heartbeat
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground align-middle">
-                          <span className="sr-only">No HTTP check history for heartbeat monitors</span>
-                          <CheckSparkline checks={null} />
+                        <TableCell className="align-middle">
+                          <CheckSparkline checks={hb.recentChecksUp} />
                         </TableCell>
                         <TableCell className="font-medium">{hb.name}</TableCell>
                         <TableCell className="max-w-[min(320px,45vw)]">
@@ -455,27 +463,22 @@ export function DashboardPage() {
             ) : null}
             </Card>
           </div>
-          <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-            {isPending ? (
-              <Card className="border-border/80 shadow-sm">
-                <CardHeader>
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="h-4 w-full" />
-                </CardHeader>
-                <CardContent className="flex flex-col items-center gap-4">
-                  <Skeleton className="size-48 rounded-full" />
-                  <Skeleton className="h-16 w-full rounded-lg" />
-                </CardContent>
-              </Card>
-            ) : monitorTypeStats ? (
+          {monitorTypeStats && monitorTypeStats.httpCount + monitorTypeStats.hbCount > 0 ? (
+            <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
               <MonitorTypePieChart
                 httpCount={monitorTypeStats.httpCount}
+                httpUp={monitorTypeStats.httpUp}
+                httpDown={monitorTypeStats.httpDown}
                 heartbeatCount={monitorTypeStats.hbCount}
+                heartbeatUp={monitorTypeStats.hbUp}
+                heartbeatDown={monitorTypeStats.hbDown}
+                heartbeatPending={monitorTypeStats.hbPending}
                 httpSuccessPct={monitorTypeStats.httpSuccessPct}
                 heartbeatSuccessPct={monitorTypeStats.hbSuccessPct}
+                openIncidentCount={monitorTypeStats.openIncidentCount}
               />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </section>
 
