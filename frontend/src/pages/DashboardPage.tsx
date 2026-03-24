@@ -19,6 +19,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { AddMonitorDialog } from '@/features/dashboard/AddMonitorDialog.tsx'
 import { CheckSparkline } from '@/features/dashboard/CheckSparkline.tsx'
 import { EditEndpointDialog } from '@/features/dashboard/EditEndpointDialog.tsx'
+import { MonitorTypePieChart } from '@/features/dashboard/MonitorTypePieChart.tsx'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx'
 import { Badge } from '@/components/ui/badge.tsx'
 import { Button, buttonVariants } from '@/components/ui/button.tsx'
@@ -32,9 +33,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table.tsx'
-import { apiJson } from '@/lib/apiClient.ts'
+import { apiFetch, apiJson } from '@/lib/apiClient.ts'
 import { formatShortDate } from '@/lib/format.ts'
-import { postMvcForm } from '@/lib/mvc-form.ts'
 import { cn } from '@/lib/utils.ts'
 import type { DashboardPayload, EndpointRow, MonitorTypeFilter } from '@/types/dashboard.ts'
 
@@ -80,24 +80,46 @@ export function DashboardPage() {
     return merged.filter((row) => row.kind === monitorTypeFilter)
   }, [data, monitorTypeFilter])
 
+  const monitorTypeStats = useMemo(() => {
+    if (!data) return null
+    const ep = data.endpoints
+    const hb = data.heartbeats
+    const httpCount = ep.length
+    const hbCount = hb.length
+    const httpUp = ep.filter((e) => e.isUp).length
+    const hbWithPing = hb.filter((h) => h.lastPingAt != null).length
+    const httpSuccessPct = httpCount ? Math.round((httpUp / httpCount) * 100) : 0
+    const hbSuccessPct = hbCount ? Math.round((hbWithPing / hbCount) * 100) : 0
+    return { httpCount, hbCount, httpSuccessPct, hbSuccessPct }
+  }, [data])
+
   const toggleMutation = useMutation({
-    mutationFn: (id: number) => postMvcForm(`/endpoints/${id}/toggle`, {}),
+    mutationFn: (id: number) => apiFetch(`/api/endpoints/${id}/toggle`, { method: 'POST' }),
     onSuccess: async (r) => {
-      if (r.ok) await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      if (r.ok) {
+        await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        await queryClient.invalidateQueries({ queryKey: ['me'] })
+      }
     },
   })
 
   const deleteEndpointMutation = useMutation({
-    mutationFn: (id: number) => postMvcForm(`/endpoints/${id}/delete`, {}),
+    mutationFn: (id: number) => apiFetch(`/api/endpoints/${id}`, { method: 'DELETE' }),
     onSuccess: async (r) => {
-      if (r.ok) await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      if (r.ok) {
+        await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        await queryClient.invalidateQueries({ queryKey: ['me'] })
+      }
     },
   })
 
   const deleteHbMutation = useMutation({
-    mutationFn: (id: number) => postMvcForm(`/heartbeats/${id}/delete`, {}),
+    mutationFn: (id: number) => apiFetch(`/api/heartbeats/${id}`, { method: 'DELETE' }),
     onSuccess: async (r) => {
-      if (r.ok) await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      if (r.ok) {
+        await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        await queryClient.invalidateQueries({ queryKey: ['me'] })
+      }
     },
   })
 
@@ -200,38 +222,39 @@ export function DashboardPage() {
         ) : null}
       </div>
 
-      {/* Monitors: endpoints + heartbeats */}
+      {/* Monitors: table left, pie chart right */}
       <section className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="text-muted-foreground size-5" />
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">Monitors</h2>
-              <p className="text-muted-foreground text-sm">HTTP uptime checks and heartbeat ping URLs in one list.</p>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] lg:items-start lg:gap-10">
+          <div className="min-w-0 space-y-4">
+            <div className="flex items-start gap-2">
+              <Activity className="text-muted-foreground mt-0.5 size-5 shrink-0" />
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">Monitors</h2>
+                <p className="text-muted-foreground text-sm">
+                  HTTP uptime checks and heartbeat ping URLs in one list.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <label htmlFor="monitor-type-filter" className="text-muted-foreground text-sm whitespace-nowrap">
-              Filter by type
-            </label>
-            <select
-              id="monitor-type-filter"
-              value={monitorTypeFilter}
-              onChange={(e) => setMonitorTypeFilter(e.target.value as MonitorTypeFilter)}
-              className={cn(
-                'border-input bg-background text-foreground h-9 min-w-[11rem] rounded-lg border px-3 py-1 text-sm shadow-sm outline-none',
-                'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-3',
-                'dark:bg-input/30',
-              )}
-            >
-              <option value="all">All types</option>
-              <option value="endpoint">HTTP / Endpoint</option>
-              <option value="heartbeat">Heartbeat</option>
-            </select>
-          </div>
-        </div>
-        <div className="mx-auto w-full max-w-5xl">
-          <Card className="border-border/80 overflow-hidden shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="monitor-type-filter" className="text-muted-foreground text-sm whitespace-nowrap">
+                Filter by type
+              </label>
+              <select
+                id="monitor-type-filter"
+                value={monitorTypeFilter}
+                onChange={(e) => setMonitorTypeFilter(e.target.value as MonitorTypeFilter)}
+                className={cn(
+                  'border-input bg-background text-foreground h-9 min-w-[11rem] rounded-lg border px-3 py-1 text-sm shadow-sm outline-none',
+                  'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-3',
+                  'dark:bg-input/30',
+                )}
+              >
+                <option value="all">All types</option>
+                <option value="endpoint">HTTP / Endpoint</option>
+                <option value="heartbeat">Heartbeat</option>
+              </select>
+            </div>
+            <Card className="border-border/80 w-full max-w-full overflow-hidden shadow-sm">
             {isPending ? (
               <div className="p-6">
                 <Skeleton className="h-40 w-full" />
@@ -430,7 +453,29 @@ export function DashboardPage() {
                 </TableBody>
               </Table>
             ) : null}
-          </Card>
+            </Card>
+          </div>
+          <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+            {isPending ? (
+              <Card className="border-border/80 shadow-sm">
+                <CardHeader>
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-full" />
+                </CardHeader>
+                <CardContent className="flex flex-col items-center gap-4">
+                  <Skeleton className="size-48 rounded-full" />
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                </CardContent>
+              </Card>
+            ) : monitorTypeStats ? (
+              <MonitorTypePieChart
+                httpCount={monitorTypeStats.httpCount}
+                heartbeatCount={monitorTypeStats.hbCount}
+                httpSuccessPct={monitorTypeStats.httpSuccessPct}
+                heartbeatSuccessPct={monitorTypeStats.hbSuccessPct}
+              />
+            ) : null}
+          </div>
         </div>
       </section>
 
