@@ -29,6 +29,10 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     @Query("delete from Incident i where i.endpoint.id = :endpointId")
     void deleteAllByEndpointId(@Param("endpointId") Long endpointId);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Incident i where i.heartbeatMonitor.id = :hbId")
+    void deleteAllByHeartbeatMonitorId(@Param("hbId") Long hbId);
+
     /** Count of all open (unresolved) incidents for a user. */
     long countByUserAndResolvedAtIsNull(User user);
 
