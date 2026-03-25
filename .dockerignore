@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Maven build output — the builder stage starts fresh
+target/
+
+# Node artefacts — npm install runs inside the builder stage
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Cursor / editor config
+.cursor/
+*.md
+
+# Local env / secrets — never bake these into the image
+.env
+.env.*
+application-local.yml
+src/main/resources/application-local.yml
+
+# Railway / Docker meta (not needed inside the image)
+railway.json
+nixpacks.toml
+Dockerfile
+.dockerignore
