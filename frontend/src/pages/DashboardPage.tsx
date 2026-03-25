@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table.tsx'
-import { apiFetch, apiJson } from '@/lib/apiClient.ts'
+import { apiFetch, apiJson, parseApiErrorBody } from '@/lib/apiClient.ts'
 import { formatShortDate } from '@/lib/format.ts'
 import { cn } from '@/lib/utils.ts'
 import type { DashboardPayload, EndpointRow, MonitorTypeFilter } from '@/types/dashboard.ts'
@@ -118,6 +118,9 @@ export function DashboardPage() {
       if (r.ok) {
         await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         await queryClient.invalidateQueries({ queryKey: ['me'] })
+      } else {
+        const msg = await parseApiErrorBody(r).catch(() => `HTTP ${r.status}`)
+        window.alert(`Could not delete endpoint: ${msg}`)
       }
     },
   })

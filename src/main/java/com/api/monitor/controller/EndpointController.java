@@ -11,8 +11,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.User;
+import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
+import com.api.monitor.repository.IncidentRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 public class EndpointController {
 
     private final EndpointRepository endpointRepository;
+    private final EndpointCheckRepository endpointCheckRepository;
+    private final IncidentRepository incidentRepository;
     private final HeartbeatMonitorRepository heartbeatMonitorRepository;
     private final UserRepository userRepository;
 
@@ -99,6 +103,8 @@ public class EndpointController {
             RedirectAttributes redirectAttributes) {
 
         Endpoint endpoint = getOwnedEndpoint(id, principal);
+        endpointCheckRepository.deleteByEndpoint(endpoint);
+        incidentRepository.deleteByEndpoint(endpoint);
         endpointRepository.delete(endpoint);
 
         redirectAttributes.addFlashAttribute("success", "Endpoint deleted.");

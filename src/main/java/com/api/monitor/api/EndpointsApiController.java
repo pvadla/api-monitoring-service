@@ -28,6 +28,7 @@ import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
+import com.api.monitor.repository.IncidentRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class EndpointsApiController {
 
     private final EndpointRepository endpointRepository;
     private final EndpointCheckRepository endpointCheckRepository;
+    private final IncidentRepository incidentRepository;
     private final HeartbeatMonitorRepository heartbeatMonitorRepository;
     private final UserRepository userRepository;
 
@@ -133,6 +135,7 @@ public class EndpointsApiController {
                 .filter(e -> e.getUser().getId().equals(user.getId()))
                 .map(endpoint -> {
                     endpointCheckRepository.deleteByEndpoint(endpoint);
+                    incidentRepository.deleteByEndpoint(endpoint);
                     endpointRepository.delete(endpoint);
                     return ResponseEntity.noContent().build();
                 })

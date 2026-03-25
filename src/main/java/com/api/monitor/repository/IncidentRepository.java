@@ -23,6 +23,9 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     /** Delete all incidents for a user (for account deletion). */
     void deleteByUser(User user);
 
+    /** Remove incidents tied to an endpoint before deleting the endpoint (FK constraint). */
+    void deleteByEndpoint(Endpoint endpoint);
+
     /** Count of all open (unresolved) incidents for a user. */
     long countByUserAndResolvedAtIsNull(User user);
 
