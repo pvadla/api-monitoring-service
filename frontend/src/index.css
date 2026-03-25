@@ -135,6 +135,14 @@
     scroll-padding-top: 5.5rem;
   }
 
+  /* Force native form controls (select popup, scrollbars, etc.) to use dark
+     OS palette so the dropdown background matches the app theme. */
+  .dark select,
+  .dark input,
+  .dark textarea {
+    color-scheme: dark;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
