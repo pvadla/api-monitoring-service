@@ -6,10 +6,14 @@
 # Maven build output — the builder stage starts fresh
 target/
 
-# Node artefacts — npm install runs inside the builder stage
+# Node artefacts — npm install runs inside the builder stage.
+# package-lock.json is excluded so npm generates a fresh Linux-native lock
+# (the Windows/macOS lock omits platform-specific optional binaries like
+# @rolldown/binding-linux-x64-gnu which Vite 8 / rolldown require).
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/package-lock.json
 
 # IDE / OS
 .idea/
