@@ -366,7 +366,7 @@ export function DashboardPage() {
                   className={cn(
                     'border-input bg-background text-foreground h-8 min-w-[10rem] rounded-lg border px-2.5 py-1 text-xs shadow-sm outline-none',
                     'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2',
-                    'dark:bg-input/30',
+                    'dark:bg-input/30 dark:[color-scheme:dark]',
                   )}
                 >
                   <option value="all">All types</option>
