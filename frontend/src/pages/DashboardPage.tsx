@@ -27,6 +27,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx'
 import { Badge } from '@/components/ui/badge.tsx'
 import { Button, buttonVariants } from '@/components/ui/button.tsx'
 import { Card } from '@/components/ui/card.tsx'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select.tsx'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
 import {
   Table,
@@ -356,23 +363,20 @@ export function DashboardPage() {
                 <h2 className="text-base font-semibold tracking-tight">Monitors</h2>
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="monitor-type-filter" className="text-muted-foreground text-xs whitespace-nowrap">
-                  Filter
-                </label>
-                <select
-                  id="monitor-type-filter"
+                <span className="text-muted-foreground text-xs whitespace-nowrap">Filter</span>
+                <Select
                   value={monitorTypeFilter}
-                  onChange={(e) => setMonitorTypeFilter(e.target.value as MonitorTypeFilter)}
-                  className={cn(
-                    'border-input bg-background text-foreground h-8 min-w-[10rem] rounded-lg border px-2.5 py-1 text-xs shadow-sm outline-none',
-                    'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2',
-                    'dark:bg-input/30',
-                  )}
+                  onValueChange={(v) => setMonitorTypeFilter(v as MonitorTypeFilter)}
                 >
-                  <option value="all">All types</option>
-                  <option value="endpoint">HTTP / Endpoint</option>
-                  <option value="heartbeat">Heartbeat</option>
-                </select>
+                  <SelectTrigger size="sm" className="min-w-[10rem] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All types</SelectItem>
+                    <SelectItem value="endpoint">HTTP / Endpoint</SelectItem>
+                    <SelectItem value="heartbeat">Heartbeat</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -576,7 +580,7 @@ export function DashboardPage() {
                                 </code>
                                 <div className="text-muted-foreground flex flex-col gap-0.5 text-xs leading-snug sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
                                   <span>every {hb.expectedIntervalMinutes} min</span>
-                                  <span>{formatShortDate(hb.lastPingAt)}</span>
+                                  <span>Last Activity: {formatShortDate(hb.lastPingAt)}</span>
                                 </div>
                               </div>
                             </TableCell>
