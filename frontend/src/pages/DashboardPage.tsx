@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
+  Clock,
   Copy,
   ExternalLink,
   Info,
@@ -11,6 +13,7 @@ import {
   Pencil,
   Play,
   Plus,
+  RefreshCw,
   Trash2,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -23,7 +26,7 @@ import { MonitorTypePieChart } from '@/features/dashboard/MonitorTypePieChart.ts
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx'
 import { Badge } from '@/components/ui/badge.tsx'
 import { Button, buttonVariants } from '@/components/ui/button.tsx'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx'
+import { Card } from '@/components/ui/card.tsx'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
 import {
   Table,
@@ -38,6 +41,7 @@ import { formatShortDate } from '@/lib/format.ts'
 import { cn } from '@/lib/utils.ts'
 import type { DashboardPayload, EndpointRow, MonitorTypeFilter } from '@/types/dashboard.ts'
 
+// ─── query helpers ────────────────────────────────────────────────────────────
 
 function dashboardQueryKey(subscription: string | null) {
   return ['dashboard', subscription ?? ''] as const
@@ -48,6 +52,124 @@ async function fetchDashboard(subscription: string | null): Promise<DashboardPay
   return apiJson<DashboardPayload>(`/api/dashboard${q}`)
 }
 
+// ─── small status pill ────────────────────────────────────────────────────────
+
+function SystemStatusPill({ data }: { data: DashboardPayload | undefined }) {
+  if (!data) return null
+  const total = data.endpoints.length + data.heartbeats.length
+  if (total === 0) return null
+  const hasDown =
+    data.endpoints.some((e) => !e.isUp) ||
+    data.heartbeats.some((h) => h.isUp === false)
+  const hasIncidents = (data.openIncidentCount ?? 0) > 0
+  if (hasDown || hasIncidents) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400">
+        <span className="size-1.5 animate-pulse rounded-full bg-red-400" />
+        Issues detected
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400">
+      <span className="size-1.5 rounded-full bg-emerald-400" />
+      All systems operational
+    </span>
+  )
+}
+
+// ─── summary pills ────────────────────────────────────────────────────────────
+
+function SummaryPills({ data }: { data: DashboardPayload }) {
+  const total = data.endpoints.length + data.heartbeats.length
+  const up =
+    data.endpoints.filter((e) => e.isUp).length +
+    data.heartbeats.filter((h) => h.isUp === true).length
+  const down =
+    data.endpoints.filter((e) => !e.isUp).length +
+    data.heartbeats.filter((h) => h.isUp === false).length
+  const incidents = data.openIncidentCount ?? 0
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-muted-foreground tabular-nums">
+        {total} monitor{total !== 1 ? 's' : ''}
+      </span>
+      <span className="text-muted-foreground/40">·</span>
+      <span className="font-medium tabular-nums text-emerald-400">{up} up</span>
+      {down > 0 && (
+        <>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="font-medium tabular-nums text-red-400">{down} down</span>
+        </>
+      )}
+      {incidents > 0 && (
+        <>
+          <span className="text-muted-foreground/40">·</span>
+          <Link to="/incidents" className="font-medium tabular-nums text-amber-400 hover:underline">
+            {incidents} open incident{incidents !== 1 ? 's' : ''}
+          </Link>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── contextual issue banner ──────────────────────────────────────────────────
+
+function IssueBanner({ data }: { data: DashboardPayload }) {
+  const downEndpoints = data.endpoints.filter((e) => !e.isUp)
+  const downHeartbeats = data.heartbeats.filter((h) => h.isUp === false)
+  const incidents = data.openIncidentCount ?? 0
+
+  if (downEndpoints.length === 0 && downHeartbeats.length === 0 && incidents === 0) return null
+
+  return (
+    <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
+      <div className="flex flex-wrap items-start gap-3">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-400" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-sm font-medium text-red-300">
+            {downEndpoints.length + downHeartbeats.length} monitor{downEndpoints.length + downHeartbeats.length !== 1 ? 's' : ''} currently down
+            {incidents > 0 && ` · ${incidents} open incident${incidents !== 1 ? 's' : ''}`}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {downEndpoints.map((ep) => (
+              <Link
+                key={ep.id}
+                to={`/endpoints/${ep.id}`}
+                className="inline-flex items-center gap-1 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-xs text-red-300 hover:bg-red-500/20"
+              >
+                <span className="size-1.5 rounded-full bg-red-400" />
+                {ep.name}
+              </Link>
+            ))}
+            {downHeartbeats.map((hb) => (
+              <span
+                key={hb.id}
+                className="inline-flex items-center gap-1 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-xs text-red-300"
+              >
+                <span className="size-1.5 rounded-full bg-red-400" />
+                {hb.name}
+              </span>
+            ))}
+            {incidents > 0 && (
+              <Link
+                to="/incidents"
+                className="inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300 hover:bg-amber-500/20"
+              >
+                View incidents →
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── main page ────────────────────────────────────────────────────────────────
+
 export function DashboardPage() {
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
@@ -57,9 +179,10 @@ export function DashboardPage() {
     return subscriptionParam === 'success' ? 'success' : null
   }, [subscriptionParam])
 
-  const { data, isPending, isError, error, refetch } = useQuery({
+  const { data, isPending, isError, error, refetch, dataUpdatedAt, isFetching } = useQuery({
     queryKey: dashboardQueryKey(subscription),
     queryFn: () => fetchDashboard(subscription),
+    refetchInterval: 60_000,
   })
 
   const [addOpen, setAddOpen] = useState(false)
@@ -138,29 +261,53 @@ export function DashboardPage() {
   const userName = data?.user.name?.trim() || data?.user.email || 'there'
   const flash = !flashDismissed && data?.flashSuccess ? data.flashSuccess : null
 
+  const lastUpdated = dataUpdatedAt
+    ? new Date(dataUpdatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null
+
   return (
-    <div className="w-full space-y-10 pb-12">
-      {/* Hero */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">Overview</p>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            Welcome back,{' '}
-            <span className="from-primary bg-gradient-to-r to-sky-400 bg-clip-text text-transparent">
-              {userName}
-            </span>{' '}
-            <span aria-hidden>👋</span>
-          </h1>
-          <p className="text-muted-foreground w-full text-sm leading-relaxed">
-            Here’s your API monitoring snapshot—uptime, checks, and heartbeat pings in one place.
-          </p>
+    <div className="w-full space-y-6 pb-12">
+
+      {/* ── Compact header bar ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <p className="text-foreground text-sm font-medium">
+              Welcome back,{' '}
+              <span className="from-primary bg-gradient-to-r to-sky-400 bg-clip-text font-semibold text-transparent">
+                {userName}
+              </span>
+            </p>
+            {data ? <SummaryPills data={data} /> : null}
+          </div>
+          <SystemStatusPill data={data} />
         </div>
-        <Button size="lg" className="shrink-0 gap-2 shadow-sm" onClick={() => setAddOpen(true)}>
-          <Plus className="size-4" />
-          Add monitor
-        </Button>
+
+        <div className="flex items-center gap-2">
+          {lastUpdated ? (
+            <span className="text-muted-foreground hidden items-center gap-1 text-xs sm:flex">
+              <Clock className="size-3" />
+              {isFetching ? 'Refreshing…' : `Updated ${lastUpdated}`}
+            </span>
+          ) : null}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            title="Refresh now"
+            disabled={isFetching}
+            onClick={() => void refetch()}
+          >
+            <RefreshCw className={cn('size-3.5', isFetching && 'animate-spin')} />
+          </Button>
+          <Button size="sm" className="gap-2 shadow-sm" onClick={() => setAddOpen(true)}>
+            <Plus className="size-3.5" />
+            Add monitor
+          </Button>
+        </div>
       </div>
 
+      {/* ── Success flash ── */}
       {flash ? (
         <Alert className="border-emerald-500/30 bg-emerald-500/5">
           <CheckCircle2 className="text-emerald-400" />
@@ -180,10 +327,11 @@ export function DashboardPage() {
         </Alert>
       ) : null}
 
+      {/* ── Load error ── */}
       {isError ? (
         <Alert variant="destructive">
           <AlertCircle />
-          <AlertTitle>Couldn’t load dashboard</AlertTitle>
+          <AlertTitle>Couldn't load dashboard</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center gap-3">
             <span>{error instanceof Error ? error.message : 'Unknown error'}</span>
             <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
@@ -193,279 +341,272 @@ export function DashboardPage() {
         </Alert>
       ) : null}
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {isPending ? (
-          <>
-            <Skeleton className="h-32 rounded-xl" />
-            <Skeleton className="h-32 rounded-xl" />
-            <Skeleton className="h-32 rounded-xl" />
-          </>
-        ) : data ? (
-          <>
-            <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md">
-              <CardHeader className="pb-2">
-                <CardDescription>Total endpoints</CardDescription>
-                <CardTitle className="text-4xl font-bold tabular-nums">{data.endpointCount}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-xs">Monitored HTTP checks</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md">
-              <CardHeader className="pb-2">
-                <CardDescription>Currently up</CardDescription>
-                <CardTitle className="text-4xl font-bold tabular-nums text-emerald-600">{data.upCount}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-xs">Healthy endpoints</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md">
-              <CardHeader className="pb-2">
-                <CardDescription>Currently down</CardDescription>
-                <CardTitle className="text-4xl font-bold tabular-nums text-red-600">{data.downCount}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-xs">Need attention</p>
-              </CardContent>
-            </Card>
-          </>
-        ) : null}
-      </div>
+      {/* ── Issue banner (only when something is down) ── */}
+      {data ? <IssueBanner data={data} /> : null}
 
-      {/* Monitors: table left, pie chart right */}
-      <section className="space-y-4">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] lg:items-start lg:gap-10">
-          <div className="min-w-0 space-y-4">
-            <div className="flex items-start gap-2">
-              <Activity className="text-muted-foreground mt-0.5 size-5 shrink-0" />
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight">Monitors</h2>
-                <p className="text-muted-foreground text-sm">
-                  HTTP uptime checks and heartbeat ping URLs in one list.
-                </p>
+      {/* ── Monitors: table left, health chart right ── */}
+      <section>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] lg:items-start lg:gap-8">
+
+          {/* left: filter + table */}
+          <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Activity className="text-muted-foreground size-4 shrink-0" />
+                <h2 className="text-base font-semibold tracking-tight">Monitors</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="monitor-type-filter" className="text-muted-foreground text-xs whitespace-nowrap">
+                  Filter
+                </label>
+                <select
+                  id="monitor-type-filter"
+                  value={monitorTypeFilter}
+                  onChange={(e) => setMonitorTypeFilter(e.target.value as MonitorTypeFilter)}
+                  className={cn(
+                    'border-input bg-background text-foreground h-8 min-w-[10rem] rounded-lg border px-2.5 py-1 text-xs shadow-sm outline-none',
+                    'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2',
+                    'dark:bg-input/30',
+                  )}
+                >
+                  <option value="all">All types</option>
+                  <option value="endpoint">HTTP / Endpoint</option>
+                  <option value="heartbeat">Heartbeat</option>
+                </select>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label htmlFor="monitor-type-filter" className="text-muted-foreground text-sm whitespace-nowrap">
-                Filter by type
-              </label>
-              <select
-                id="monitor-type-filter"
-                value={monitorTypeFilter}
-                onChange={(e) => setMonitorTypeFilter(e.target.value as MonitorTypeFilter)}
-                className={cn(
-                  'border-input bg-background text-foreground h-9 min-w-[11rem] rounded-lg border px-3 py-1 text-sm shadow-sm outline-none',
-                  'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-3',
-                  'dark:bg-input/30',
-                )}
-              >
-                <option value="all">All types</option>
-                <option value="endpoint">HTTP / Endpoint</option>
-                <option value="heartbeat">Heartbeat</option>
-              </select>
-            </div>
+
             <Card className="border-border/80 w-full max-w-full overflow-hidden shadow-sm">
-            {isPending ? (
-              <div className="p-6">
-                <Skeleton className="h-40 w-full" />
-              </div>
-            ) : data ? (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="w-28">Type</TableHead>
-                    <TableHead className="w-[7.5rem]">Status</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead className="w-44 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.endpoints.length === 0 && data.heartbeats.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground py-14 text-center text-sm">
-                        No monitors yet. Use <strong>Add monitor</strong> for HTTP uptime or Cron / Heartbeat.
-                      </TableCell>
+              {isPending ? (
+                <div className="space-y-2 p-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : data ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="w-24">Type</TableHead>
+                      <TableHead className="w-[7.5rem]">Last 15</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Target</TableHead>
+                      <TableHead className="w-44 text-right">Actions</TableHead>
                     </TableRow>
-                  ) : unifiedRows.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground py-14 text-center text-sm">
-                        No monitors match this filter.{' '}
-                        <button
-                          type="button"
-                          className="text-primary font-medium underline-offset-4 hover:underline"
-                          onClick={() => setMonitorTypeFilter('all')}
-                        >
-                          Show all types
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                ) : (
-                  unifiedRows.map((row) => {
-                    if (row.kind === 'endpoint') {
-                      const ep = row.ep
-                      return (
-                        <TableRow key={`ep-${ep.id}`} className="group">
-                          <TableCell>
-                            <Badge variant="secondary" className="font-medium">
-                              HTTP
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="align-middle">
-                            <CheckSparkline checks={ep.recentChecksUp} />
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            <Link to={`/endpoints/${ep.id}`} className="text-primary hover:underline">
-                              {ep.name}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="max-w-[min(320px,45vw)]">
-                            <div className="flex flex-col gap-1.5">
-                              <a
-                                href={ep.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-primary inline-flex max-w-full items-center gap-1 truncate text-sm font-medium hover:underline"
-                              >
-                                <span className="truncate">{ep.url}</span>
-                                <ExternalLink className="size-3.5 shrink-0 opacity-60" />
-                              </a>
-                              <div className="text-muted-foreground flex flex-col gap-0.5 text-xs leading-snug sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
-                                <span>
-                                  <span className="text-muted-foreground/80">Interval</span>
-                                  {' · '}
-                                  every {ep.checkInterval} min
-                                </span>
-                                <span>
-                                  <span className="text-muted-foreground/80">Last activity</span>
-                                  {' · '}
-                                  {formatShortDate(ep.lastChecked)}
-                                </span>
-                              </div>
+                  </TableHeader>
+                  <TableBody>
+                    {data.endpoints.length === 0 && data.heartbeats.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-muted-foreground py-16 text-center text-sm">
+                          <div className="flex flex-col items-center gap-3">
+                            <Activity className="text-muted-foreground/40 size-10" />
+                            <div>
+                              <p className="font-medium">No monitors yet</p>
+                              <p className="text-muted-foreground/70 mt-1 text-xs">
+                                Add an HTTP endpoint to check uptime, or a heartbeat URL for cron jobs.
+                              </p>
                             </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex flex-wrap items-center justify-end gap-0.5">
-                              <Link
-                                to={`/endpoints/${ep.id}`}
-                                title="View details"
-                                className={cn(
-                                  buttonVariants({ variant: 'ghost', size: 'icon' }),
-                                  'inline-flex size-9 items-center justify-center rounded-lg',
+                            <Button size="sm" className="gap-2" onClick={() => setAddOpen(true)}>
+                              <Plus className="size-3.5" />
+                              Add your first monitor
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : unifiedRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-muted-foreground py-14 text-center text-sm">
+                          No monitors match this filter.{' '}
+                          <button
+                            type="button"
+                            className="text-primary font-medium underline-offset-4 hover:underline"
+                            onClick={() => setMonitorTypeFilter('all')}
+                          >
+                            Show all
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      unifiedRows.map((row) => {
+                        if (row.kind === 'endpoint') {
+                          const ep = row.ep
+                          return (
+                            <TableRow
+                              key={`ep-${ep.id}`}
+                              className={cn(
+                                'group',
+                                !ep.isUp && 'bg-red-500/[0.04]',
+                              )}
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={cn(
+                                      'size-1.5 shrink-0 rounded-full',
+                                      ep.isUp ? 'bg-emerald-400' : 'animate-pulse bg-red-400',
+                                    )}
+                                  />
+                                  <Badge variant="secondary" className="font-medium">
+                                    HTTP
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell className="align-middle">
+                                <CheckSparkline checks={ep.recentChecksUp} />
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                <Link to={`/endpoints/${ep.id}`} className="text-primary hover:underline">
+                                  {ep.name}
+                                </Link>
+                                {!ep.isActive && (
+                                  <span className="text-muted-foreground ml-1.5 text-xs">(paused)</span>
                                 )}
-                              >
-                                <Info className="size-4" />
-                              </Link>
+                              </TableCell>
+                              <TableCell className="max-w-[min(320px,45vw)]">
+                                <div className="flex flex-col gap-1.5">
+                                  <a
+                                    href={ep.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-primary inline-flex max-w-full items-center gap-1 truncate text-sm font-medium hover:underline"
+                                  >
+                                    <span className="truncate">{ep.url}</span>
+                                    <ExternalLink className="size-3.5 shrink-0 opacity-60" />
+                                  </a>
+                                  <div className="text-muted-foreground flex flex-col gap-0.5 text-xs leading-snug sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
+                                    <span>every {ep.checkInterval} min</span>
+                                    <span>{formatShortDate(ep.lastChecked)}</span>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex flex-wrap items-center justify-end gap-0.5">
+                                  <Link
+                                    to={`/endpoints/${ep.id}`}
+                                    title="View details"
+                                    className={cn(
+                                      buttonVariants({ variant: 'ghost', size: 'icon' }),
+                                      'inline-flex size-8 items-center justify-center rounded-lg',
+                                    )}
+                                  >
+                                    <Info className="size-3.5" />
+                                  </Link>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    title="Edit"
+                                    onClick={() => {
+                                      setEditEndpoint(ep)
+                                      setEditOpen(true)
+                                    }}
+                                  >
+                                    <Pencil className="size-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    title={ep.isActive ? 'Pause' : 'Resume'}
+                                    disabled={toggleMutation.isPending}
+                                    onClick={() => toggleMutation.mutate(ep.id)}
+                                  >
+                                    {ep.isActive ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-muted-foreground hover:text-destructive size-8"
+                                    title="Delete"
+                                    disabled={deleteEndpointMutation.isPending}
+                                    onClick={() => {
+                                      if (window.confirm('Delete this endpoint? This cannot be undone.')) {
+                                        deleteEndpointMutation.mutate(ep.id)
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        }
+                        const hb = row.hb
+                        const pingUrl = `${data.baseUrl.replace(/\/$/, '')}/heartbeat/${hb.token}`
+                        return (
+                          <TableRow
+                            key={`hb-${hb.id}`}
+                            className={cn(hb.isUp === false && 'bg-red-500/[0.04]')}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={cn(
+                                    'size-1.5 shrink-0 rounded-full',
+                                    hb.isUp === true && 'bg-emerald-400',
+                                    hb.isUp === false && 'animate-pulse bg-red-400',
+                                    hb.isUp === null && 'bg-muted-foreground/40',
+                                  )}
+                                />
+                                <Badge
+                                  variant="outline"
+                                  className="border-sky-500/40 bg-sky-500/10 font-medium text-sky-800 dark:text-sky-300"
+                                >
+                                  Heartbeat
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-middle">
+                              <CheckSparkline checks={hb.recentChecksUp} />
+                            </TableCell>
+                            <TableCell className="font-medium">{hb.name}</TableCell>
+                            <TableCell className="max-w-[min(320px,45vw)]">
+                              <div className="flex flex-col gap-1.5">
+                                <code className="bg-muted text-foreground/90 inline-flex max-w-full items-center gap-2 rounded-md px-2 py-1 text-xs break-all">
+                                  {pingUrl}
+                                  <button
+                                    type="button"
+                                    className="text-muted-foreground hover:text-foreground shrink-0"
+                                    title="Copy URL"
+                                    onClick={() => void navigator.clipboard.writeText(pingUrl)}
+                                  >
+                                    <Copy className="size-3" />
+                                  </button>
+                                </code>
+                                <div className="text-muted-foreground flex flex-col gap-0.5 text-xs leading-snug sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
+                                  <span>every {hb.expectedIntervalMinutes} min</span>
+                                  <span>{formatShortDate(hb.lastPingAt)}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-9"
-                                title="Edit"
-                                onClick={() => {
-                                  setEditEndpoint(ep)
-                                  setEditOpen(true)
-                                }}
-                              >
-                                <Pencil className="size-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="size-9"
-                                title={ep.isActive ? 'Pause' : 'Resume'}
-                                disabled={toggleMutation.isPending}
-                                onClick={() => toggleMutation.mutate(ep.id)}
-                              >
-                                {ep.isActive ? <Pause className="size-4" /> : <Play className="size-4" />}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-muted-foreground hover:text-destructive size-9"
+                                className="text-muted-foreground hover:text-destructive size-8"
                                 title="Delete"
-                                disabled={deleteEndpointMutation.isPending}
+                                disabled={deleteHbMutation.isPending}
                                 onClick={() => {
-                                  if (window.confirm('Delete this endpoint? This cannot be undone.')) {
-                                    deleteEndpointMutation.mutate(ep.id)
+                                  if (window.confirm('Delete this heartbeat monitor?')) {
+                                    deleteHbMutation.mutate(hb.id)
                                   }
                                 }}
                               >
-                                <Trash2 className="size-4" />
+                                <Trash2 className="size-3.5" />
                               </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    }
-                    const hb = row.hb
-                    const pingUrl = `${data.baseUrl.replace(/\/$/, '')}/heartbeat/${hb.token}`
-                    return (
-                      <TableRow key={`hb-${hb.id}`}>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="border-sky-500/40 bg-sky-500/10 font-medium text-sky-800 dark:text-sky-300"
-                          >
-                              Heartbeat
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          <CheckSparkline checks={hb.recentChecksUp} />
-                        </TableCell>
-                        <TableCell className="font-medium">{hb.name}</TableCell>
-                        <TableCell className="max-w-[min(320px,45vw)]">
-                          <div className="flex flex-col gap-1.5">
-                            <code className="bg-muted text-foreground/90 inline-flex max-w-full items-center gap-2 rounded-md px-2 py-1 text-sm break-all">
-                              {pingUrl}
-                              <button
-                                type="button"
-                                className="text-muted-foreground hover:text-foreground shrink-0"
-                                title="Copy URL"
-                                onClick={() => void navigator.clipboard.writeText(pingUrl)}
-                              >
-                                <Copy className="size-3.5" />
-                              </button>
-                            </code>
-                            <div className="text-muted-foreground flex flex-col gap-0.5 text-xs leading-snug sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
-                              <span>
-                                <span className="text-muted-foreground/80">Interval</span>
-                                {' · '}
-                                every {hb.expectedIntervalMinutes} min
-                              </span>
-                              <span>
-                                <span className="text-muted-foreground/80">Last activity</span>
-                                {' · '}
-                                {formatShortDate(hb.lastPingAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-destructive"
-                            disabled={deleteHbMutation.isPending}
-                            onClick={() => {
-                              if (window.confirm('Delete this heartbeat monitor?')) {
-                                deleteHbMutation.mutate(hb.id)
-                              }
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-                </TableBody>
-              </Table>
-            ) : null}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              ) : null}
             </Card>
           </div>
+
+          {/* right: monitor health chart */}
           {monitorTypeStats && monitorTypeStats.httpCount + monitorTypeStats.hbCount > 0 ? (
             <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
               <MonitorTypePieChart
@@ -481,7 +622,10 @@ export function DashboardPage() {
                 openIncidentCount={monitorTypeStats.openIncidentCount}
               />
             </div>
+          ) : isPending ? (
+            <Skeleton className="h-80 rounded-xl" />
           ) : null}
+
         </div>
       </section>
 
