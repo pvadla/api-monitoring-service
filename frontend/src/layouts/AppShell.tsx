@@ -44,11 +44,17 @@ export function AppShell() {
             <nav className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-4 lg:gap-x-5">
               {isHome ? (
                 <>
-                  {HOME_SECTION_NAV.map(({ href, label }) => (
-                    <a key={href} href={href} className={sectionLinkClass()}>
-                      {label}
-                    </a>
-                  ))}
+                  {HOME_SECTION_NAV.map(({ href, label }) =>
+                    href.startsWith('#') ? (
+                      <a key={href} href={href} className={sectionLinkClass()}>
+                        {label}
+                      </a>
+                    ) : (
+                      <Link key={href} to={href} className={sectionLinkClass()}>
+                        {label}
+                      </Link>
+                    ),
+                  )}
                 </>
               ) : (
                 <>

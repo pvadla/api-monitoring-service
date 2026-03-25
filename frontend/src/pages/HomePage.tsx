@@ -288,7 +288,7 @@ export function HomePage() {
 
       <Separator className="opacity-50" />
 
-      {/* About */}
+      {/* About — anchor kept for old links; full content lives at /about */}
       <section
         id="about"
         className="scroll-mt-28 bg-muted/20 py-16 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
@@ -297,43 +297,38 @@ export function HomePage() {
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             <span className="text-primary">About</span> APIWatch
           </h2>
-          <Card className="border-border/80 text-left">
-            <CardContent className="text-muted-foreground space-y-4 pt-6 text-sm leading-relaxed">
-              <p>
-                APIWatch is built for teams who need reliable API monitoring without the overhead. We focus on clear
-                uptime checks, actionable incidents, and optional public status pages so you can communicate with
-                customers during outages.
-              </p>
-              <p>
-                Whether you run a few personal endpoints or production APIs, you get a single dashboard for monitors,
-                heartbeats, and history—backed by Google sign-in and straightforward settings.
-              </p>
-            </CardContent>
-          </Card>
+          <p className="text-muted-foreground mx-auto max-w-2xl text-sm leading-relaxed sm:text-base">
+            Built for developers who want signal, not noise—uptime checks, incidents, heartbeats, and public status
+            pages in one place.
+          </p>
+          <Link to="/about" className={cn(buttonVariants({ size: 'lg' }))}>
+            Read the full About page
+          </Link>
         </div>
       </section>
 
       <Separator className="opacity-50" />
 
-      {/* Contact */}
+      {/* Contact — anchor kept for old links; form lives at /contact */}
       <section id="contact" className="scroll-mt-28 pb-20 pt-16">
         <div className="w-full space-y-8 text-center">
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             <span className="text-primary">Contact</span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            Questions, feedback, or partnership ideas? We’d love to hear from you.
+            Questions, feedback, or partnership ideas? Send us a message through the app—we read every note.
           </p>
           <Card className="border-border/80">
             <CardContent className="flex flex-col items-center gap-6 pt-8 pb-8">
               <div className="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-full">
                 <Mail className="size-7" />
               </div>
-              <p className="text-muted-foreground w-full text-sm">
-                Use the contact page to send a message. We read every note and aim to reply within a few business days.
+              <p className="text-muted-foreground w-full max-w-md text-sm">
+                The contact form uses our public API (no legacy Thymeleaf post). We aim to reply within a few business
+                days.
               </p>
               <Link to="/contact" className={cn(buttonVariants({ size: 'lg' }))}>
-                Go to contact form
+                Open contact form
               </Link>
             </CardContent>
           </Card>
