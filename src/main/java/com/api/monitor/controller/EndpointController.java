@@ -9,13 +9,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.User;
-import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
-import com.api.monitor.repository.IncidentRepository;
 import com.api.monitor.repository.UserRepository;
+import com.api.monitor.service.EndpointDeletionService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,10 +27,9 @@ import lombok.RequiredArgsConstructor;
 public class EndpointController {
 
     private final EndpointRepository endpointRepository;
-    private final EndpointCheckRepository endpointCheckRepository;
-    private final IncidentRepository incidentRepository;
     private final HeartbeatMonitorRepository heartbeatMonitorRepository;
     private final UserRepository userRepository;
+    private final EndpointDeletionService endpointDeletionService;
 
     // ─── Add ────────────────────────────────────────────────────────────────
     @PostMapping("/add")
@@ -102,12 +103,16 @@ public class EndpointController {
             @PathVariable Long id,
             RedirectAttributes redirectAttributes) {
 
-        Endpoint endpoint = getOwnedEndpoint(id, principal);
-        endpointCheckRepository.deleteByEndpoint(endpoint);
-        incidentRepository.deleteByEndpoint(endpoint);
-        endpointRepository.delete(endpoint);
-
-        redirectAttributes.addFlashAttribute("success", "Endpoint deleted.");
+        try {
+            endpointDeletionService.deleteOwnedEndpoint(id, getUser(principal));
+            redirectAttributes.addFlashAttribute("success", "Endpoint deleted.");
+        } catch (ResponseStatusException e) {
+            if (e.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                redirectAttributes.addFlashAttribute("error", "Could not delete that endpoint.");
+            } else {
+                throw e;
+            }
+        }
         return "redirect:/dashboard";
     }
 

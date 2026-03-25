@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,8 +29,8 @@ import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
-import com.api.monitor.repository.IncidentRepository;
 import com.api.monitor.repository.UserRepository;
+import com.api.monitor.service.EndpointDeletionService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -40,9 +41,9 @@ public class EndpointsApiController {
 
     private final EndpointRepository endpointRepository;
     private final EndpointCheckRepository endpointCheckRepository;
-    private final IncidentRepository incidentRepository;
     private final HeartbeatMonitorRepository heartbeatMonitorRepository;
     private final UserRepository userRepository;
+    private final EndpointDeletionService endpointDeletionService;
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getOne(
@@ -131,15 +132,15 @@ public class EndpointsApiController {
             @PathVariable Long id) {
 
         User user = requireUser(principal);
-        return endpointRepository.findById(id)
-                .filter(e -> e.getUser().getId().equals(user.getId()))
-                .map(endpoint -> {
-                    endpointCheckRepository.deleteByEndpoint(endpoint);
-                    incidentRepository.deleteByEndpoint(endpoint);
-                    endpointRepository.delete(endpoint);
-                    return ResponseEntity.noContent().build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            endpointDeletionService.deleteOwnedEndpoint(id, user);
+            return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException e) {
+            if (e.getStatusCode().value() == HttpStatus.NOT_FOUND.value()) {
+                return ResponseEntity.notFound().build();
+            }
+            throw e;
+        }
     }
 
     @PostMapping("/{id}/toggle")

@@ -1,11 +1,13 @@
 package com.api.monitor.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.Optional;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.HeartbeatMonitor;
@@ -23,8 +25,9 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     /** Delete all incidents for a user (for account deletion). */
     void deleteByUser(User user);
 
-    /** Remove incidents tied to an endpoint before deleting the endpoint (FK constraint). */
-    void deleteByEndpoint(Endpoint endpoint);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Incident i where i.endpoint.id = :endpointId")
+    void deleteAllByEndpointId(@Param("endpointId") Long endpointId);
 
     /** Count of all open (unresolved) incidents for a user. */
     long countByUserAndResolvedAtIsNull(User user);
