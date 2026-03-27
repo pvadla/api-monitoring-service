@@ -20,6 +20,7 @@ import com.api.monitor.entity.HeartbeatMonitor;
 import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
+import com.api.monitor.repository.SslMonitorRepository;
 import com.api.monitor.repository.UserRepository;
 import com.api.monitor.service.HeartbeatDeletionService;
 
@@ -32,6 +33,7 @@ public class HeartbeatsApiController {
 
     private final HeartbeatMonitorRepository heartbeatRepository;
     private final EndpointRepository endpointRepository;
+    private final SslMonitorRepository sslMonitorRepository;
     private final UserRepository userRepository;
     private final HeartbeatDeletionService heartbeatDeletionService;
 
@@ -48,14 +50,16 @@ public class HeartbeatsApiController {
 
         User user = requireUser(principal);
 
+        // FREE tier: max 5 monitors total (HTTP + heartbeat + SSL)
         String tier = user.getSubscriptionTier();
         if (tier == null || tier.equalsIgnoreCase("FREE")) {
             long endpoints = endpointRepository.countByUser(user);
             long heartbeats = heartbeatRepository.findByUser(user).size();
-            if (endpoints + heartbeats >= 5) {
+            long sslMonitors = sslMonitorRepository.findByUser(user).size();
+            if (endpoints + heartbeats + sslMonitors >= 5) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                         .body(ApiMessageResponse.error(
-                                "Free plan limit reached: you can have up to 5 monitors (HTTP + heartbeat)."));
+                                "Free plan limit reached: you can have up to 5 monitors total (HTTP + heartbeat + SSL)."));
             }
         }
 

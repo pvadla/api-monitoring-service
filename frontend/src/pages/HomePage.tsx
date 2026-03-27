@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Check, Mail, Rocket, Shield } from 'lucide-react'
+import { Activity, ArrowRight, Check, Globe, Lock, Mail, Rocket, Shield } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx'
 import { Badge } from '@/components/ui/badge.tsx'
@@ -130,7 +130,7 @@ export function HomePage() {
           <div className="text-muted-foreground mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm">
             <span className="inline-flex items-center gap-2">
               <Check className="size-4 shrink-0 text-emerald-400" aria-hidden />
-              Free forever for 5 monitors
+              Free forever for 5 monitors (HTTP, heartbeat, SSL cert)
             </span>
             <span className="inline-flex items-center gap-2">
               <Check className="size-4 shrink-0 text-emerald-400" aria-hidden />
@@ -186,7 +186,8 @@ export function HomePage() {
             <p className="text-muted-foreground mt-4 text-xl">Start free. Upgrade when you need more.</p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3 md:items-start">
+            {/* ── FREE ── */}
             <Card className="border-primary/40 relative overflow-hidden shadow-lg shadow-primary/5">
               <div className="from-primary/10 pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent" />
               <CardHeader>
@@ -195,18 +196,68 @@ export function HomePage() {
                   <span className="text-5xl font-bold tabular-nums">$0</span>
                   <span className="text-muted-foreground mb-2 text-sm">/month</span>
                 </div>
-                <CardDescription>Perfect for personal projects</CardDescription>
+                <CardDescription>Everything you need for personal projects and side builds — no card required.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <Separator />
-                <ul className="space-y-3">
-                  <CheckRow ok>5 monitors (HTTP + heartbeat)</CheckRow>
-                  <CheckRow ok>1–15 min check interval</CheckRow>
-                  <CheckRow ok>Email alerts</CheckRow>
-                  <CheckRow ok>Incident history</CheckRow>
-                  <CheckRow ok>Public status page</CheckRow>
-                  <CheckRow ok={false}>SMS alerts</CheckRow>
-                </ul>
+
+                {/* Monitor types */}
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">What you can monitor</p>
+
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-sky-500/15">
+                      <Globe className="size-3.5 text-sky-400" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium">HTTP Monitors</p>
+                      <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+                        Ping any URL every 1–15 min. Track status codes, response times, and body content.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-violet-500/15">
+                      <Activity className="size-3.5 text-violet-400" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium">Heartbeat Monitors</p>
+                      <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+                        Verify cron jobs and scheduled tasks by pinging a unique URL. Alerts if a ping is missed.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-emerald-500/15">
+                      <Lock className="size-3.5 text-emerald-400" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium">SSL Certificate Monitors</p>
+                      <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+                        Track TLS cert expiry for any domain. Get email alerts before your cert expires and breaks your site.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Feature checklist */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">What's included</p>
+                  <ul className="space-y-2.5">
+                    <CheckRow ok>Up to 5 monitors: HTTP, heartbeat, and SSL cert</CheckRow>
+                    <CheckRow ok>1–15 min check interval</CheckRow>
+                    <CheckRow ok>Email alerts on outage &amp; recovery</CheckRow>
+                    <CheckRow ok>Automatic incident tracking</CheckRow>
+                    <CheckRow ok>Public status page with custom slug</CheckRow>
+                    <CheckRow ok={false}>SMS / push alerts (paid plans)</CheckRow>
+                    <CheckRow ok={false}>Sub-minute checks (paid plans)</CheckRow>
+                  </ul>
+                </div>
+
                 {user ? (
                   <Link to="/dashboard" className={cn(buttonVariants({ variant: 'secondary' }), 'w-full')}>
                     Go to dashboard
@@ -219,6 +270,7 @@ export function HomePage() {
               </CardContent>
             </Card>
 
+            {/* ── STARTER ── */}
             <Card className="border-border/80 bg-muted/10 opacity-95">
               <div className="flex justify-center">
                 <Badge variant="secondary" className="-mt-1">
@@ -231,17 +283,17 @@ export function HomePage() {
                   <span className="text-5xl font-bold tabular-nums text-muted-foreground">$7</span>
                   <span className="text-muted-foreground mb-2 text-sm">/month</span>
                 </div>
-                <CardDescription>For growing applications</CardDescription>
+                <CardDescription>For growing apps that need tighter check intervals and more monitors.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <Separator />
-                <ul className="space-y-3">
-                  <CheckRow ok>25 endpoints</CheckRow>
+                <ul className="space-y-2.5">
+                  <CheckRow ok>25 monitors (HTTP, heartbeat &amp; SSL)</CheckRow>
                   <CheckRow ok>1 min check interval</CheckRow>
-                  <CheckRow ok>Email alerts</CheckRow>
-                  <CheckRow ok>30 day history</CheckRow>
+                  <CheckRow ok>Email alerts on outage &amp; recovery</CheckRow>
+                  <CheckRow ok>30-day incident history</CheckRow>
                   <CheckRow ok>Public status page</CheckRow>
-                  <CheckRow ok={false}>SMS alerts</CheckRow>
+                  <CheckRow ok={false}>SMS / push alerts</CheckRow>
                 </ul>
                 <Button className="w-full" disabled variant="secondary">
                   Coming soon
@@ -249,6 +301,7 @@ export function HomePage() {
               </CardContent>
             </Card>
 
+            {/* ── PRO ── */}
             <Card className="border-border/80 bg-muted/10 opacity-95">
               <div className="flex justify-center">
                 <Badge variant="secondary" className="-mt-1">
@@ -261,17 +314,17 @@ export function HomePage() {
                   <span className="text-5xl font-bold tabular-nums text-muted-foreground">$19</span>
                   <span className="text-muted-foreground mb-2 text-sm">/month</span>
                 </div>
-                <CardDescription>For production applications</CardDescription>
+                <CardDescription>For production systems where every second of downtime counts.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <Separator />
-                <ul className="space-y-3">
-                  <CheckRow ok>100 endpoints</CheckRow>
-                  <CheckRow ok>30 sec check interval</CheckRow>
-                  <CheckRow ok>Email alerts</CheckRow>
-                  <CheckRow ok>90 day history</CheckRow>
+                <ul className="space-y-2.5">
+                  <CheckRow ok>100 monitors (HTTP, heartbeat &amp; SSL)</CheckRow>
+                  <CheckRow ok>30-sec check interval</CheckRow>
+                  <CheckRow ok>Email alerts on outage &amp; recovery</CheckRow>
+                  <CheckRow ok>90-day incident history</CheckRow>
                   <CheckRow ok>Public status page</CheckRow>
-                  <CheckRow ok>SMS alerts</CheckRow>
+                  <CheckRow ok>SMS / push alerts</CheckRow>
                 </ul>
                 <Button className="w-full" disabled variant="secondary">
                   Coming soon
@@ -281,7 +334,7 @@ export function HomePage() {
           </div>
 
           <p className="text-muted-foreground text-center text-sm">
-            No credit card required · Cancel anytime · Paid plans when available
+            No credit card required · Cancel anytime · Paid plans coming soon
           </p>
         </div>
       </section>
