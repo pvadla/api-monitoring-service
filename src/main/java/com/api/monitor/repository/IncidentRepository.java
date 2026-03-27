@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.HeartbeatMonitor;
 import com.api.monitor.entity.Incident;
+import com.api.monitor.entity.SslMonitor;
 import com.api.monitor.entity.User;
 
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
@@ -44,4 +45,11 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
 
     /** All open incidents for a heartbeat monitor (used when deleting the monitor). */
     List<Incident> findByHeartbeatMonitorAndResolvedAtIsNull(HeartbeatMonitor hb);
+
+    /** Open (unresolved) auto-incident for this SSL monitor, if any. */
+    Optional<Incident> findFirstBySslMonitorAndResolvedAtIsNullOrderByStartedAtDesc(SslMonitor monitor);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Incident i where i.sslMonitor.id = :monitorId")
+    void deleteAllBySslMonitorId(@Param("monitorId") Long monitorId);
 }

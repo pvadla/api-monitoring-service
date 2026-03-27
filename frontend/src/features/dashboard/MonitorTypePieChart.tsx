@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 
-import { AlertTriangle, CheckCircle2, Globe, Heart, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Globe, Heart, Lock, XCircle } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.tsx'
 import { cn } from '@/lib/utils.ts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SegmentId = 'http' | 'heartbeat'
+type SegmentId = 'http' | 'heartbeat' | 'ssl'
 
 type SegmentDef = {
   id: SegmentId
@@ -16,7 +16,8 @@ type SegmentDef = {
   up: number
   down: number
   pending: number
-  successPct: number
+  /** null when all monitors in this group have never been checked yet */
+  successPct: number | null
   color: string
   dimColor: string
 }
@@ -29,8 +30,15 @@ export type MonitorTypePieChartProps = {
   heartbeatUp: number
   heartbeatDown: number
   heartbeatPending: number
+  sslCount: number
+  sslUp: number
+  sslDown: number
+  sslPending: number
   httpSuccessPct: number
-  heartbeatSuccessPct: number
+  /** null = all monitors in this group are pending (never checked yet) */
+  heartbeatSuccessPct: number | null
+  /** null = all monitors in this group are pending (never checked yet) */
+  sslSuccessPct: number | null
   openIncidentCount: number
 }
 
@@ -117,15 +125,21 @@ export function MonitorTypePieChart({
   heartbeatUp,
   heartbeatDown,
   heartbeatPending,
+  sslCount,
+  sslUp,
+  sslDown,
+  sslPending,
   httpSuccessPct,
   heartbeatSuccessPct,
+  sslSuccessPct,
   openIncidentCount,
 }: MonitorTypePieChartProps) {
   const [hover, setHover] = useState<SegmentId | null>(null)
-  const total = httpCount + heartbeatCount
+  const total = httpCount + heartbeatCount + sslCount
 
   const HTTP_COLOR = '#3b82f6'
   const HB_COLOR = '#a855f7'
+  const SSL_COLOR = '#f59e0b'
 
   const segments = useMemo<SegmentDef[]>(() => {
     if (total === 0) return []
@@ -156,20 +170,38 @@ export function MonitorTypePieChart({
         dimColor: '#7e22ce',
       })
     }
+    if (sslCount > 0) {
+      segs.push({
+        id: 'ssl',
+        label: 'SSL Certificate',
+        count: sslCount,
+        up: sslUp,
+        down: sslDown,
+        pending: sslPending,
+        successPct: sslSuccessPct,
+        color: SSL_COLOR,
+        dimColor: '#b45309',
+      })
+    }
     return segs
   }, [
     total, httpCount, httpUp, httpDown,
     heartbeatCount, heartbeatUp, heartbeatDown, heartbeatPending,
-    httpSuccessPct, heartbeatSuccessPct,
+    sslCount, sslUp, sslDown, sslPending,
+    httpSuccessPct, heartbeatSuccessPct, sslSuccessPct,
   ])
 
   const activeSegment = hover ? segments.find((s) => s.id === hover) ?? null : null
-  const totalUp = httpUp + heartbeatUp
-  const totalDown = httpDown + heartbeatDown
+  const totalUp = httpUp + heartbeatUp + sslUp
+  const totalDown = httpDown + heartbeatDown + sslDown
 
   // Arc angles per segment
   const angles = useMemo(() => {
-    const map: Record<SegmentId, { start: number; end: number }> = { http: { start: 0, end: 0 }, heartbeat: { start: 0, end: 0 } }
+    const map: Record<SegmentId, { start: number; end: number }> = {
+      http: { start: 0, end: 0 },
+      heartbeat: { start: 0, end: 0 },
+      ssl: { start: 0, end: 0 },
+    }
     let cursor = 0
     for (const s of segments) {
       const deg = (s.count / total) * 360
@@ -278,23 +310,27 @@ export function MonitorTypePieChart({
                 )}
               </div>
 
-              {/* Success bar */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Success</span>
-                  <span className="font-semibold tabular-nums text-emerald-400">{activeSegment.successPct}%</span>
-                </div>
-                <ProgressBar pct={activeSegment.successPct} color="#10b981" />
-              </div>
-
-              {/* Failure bar */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Failure</span>
-                  <span className="font-semibold tabular-nums text-red-400">{100 - activeSegment.successPct}%</span>
-                </div>
-                <ProgressBar pct={100 - activeSegment.successPct} color="#ef4444" />
-              </div>
+              {/* Success / failure bars — only when we have real data */}
+              {activeSegment.successPct !== null ? (
+                <>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Success</span>
+                      <span className="font-semibold tabular-nums text-emerald-400">{activeSegment.successPct}%</span>
+                    </div>
+                    <ProgressBar pct={activeSegment.successPct} color="#10b981" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Failure</span>
+                      <span className="font-semibold tabular-nums text-red-400">{100 - activeSegment.successPct}%</span>
+                    </div>
+                    <ProgressBar pct={100 - activeSegment.successPct} color="#ef4444" />
+                  </div>
+                </>
+              ) : (
+                <p className="text-muted-foreground text-xs">No checks run yet — first check pending.</p>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1 py-1 text-center">
@@ -319,17 +355,25 @@ export function MonitorTypePieChart({
             >
               <span className="size-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
               <span className="flex items-center gap-1 font-medium">
-                {s.id === 'http' ? <Globe className="size-3 opacity-60" /> : <Heart className="size-3 opacity-60" />}
+                {s.id === 'http' ? <Globe className="size-3 opacity-60" /> :
+                 s.id === 'heartbeat' ? <Heart className="size-3 opacity-60" /> :
+                 <Lock className="size-3 opacity-60" />}
                 {s.label}
               </span>
               <span className="ml-auto tabular-nums text-muted-foreground">{s.count}</span>
               <span
                 className={cn(
-                  'w-8 text-right tabular-nums font-semibold',
-                  s.successPct >= 80 ? 'text-emerald-400' : s.successPct >= 50 ? 'text-amber-400' : 'text-red-400',
+                  'w-12 text-right tabular-nums font-semibold text-xs',
+                  s.successPct === null
+                    ? 'text-muted-foreground'
+                    : s.successPct >= 80
+                    ? 'text-emerald-400'
+                    : s.successPct >= 50
+                    ? 'text-amber-400'
+                    : 'text-red-400',
                 )}
               >
-                {s.successPct}%
+                {s.successPct === null ? 'pending' : `${s.successPct}%`}
               </span>
             </button>
           ))}

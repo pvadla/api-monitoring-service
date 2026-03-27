@@ -12,6 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.HeartbeatMonitor;
 import com.api.monitor.entity.Incident;
+import com.api.monitor.entity.SslMonitor;
 import com.api.monitor.entity.User;
 
 import lombok.RequiredArgsConstructor;
@@ -201,6 +202,79 @@ public class EmailNotificationService {
 
         sendEmail(user.getEmail(), subject, body);
         log.info("Heartbeat recovery email sent to {} for monitor {}", user.getEmail(), hb.getId());
+    }
+
+    public void sendSslMonitorExpiryEmail(User user, SslMonitor monitor, long daysLeft, String errorMessage) {
+        if (!enabled) {
+            log.debug("Email disabled; skipping SSL monitor expiry email.");
+            return;
+        }
+        if (smtp2goApiKey == null || smtp2goApiKey.isBlank()) {
+            log.warn("SMTP2GO_API_KEY not set; skipping SSL monitor expiry email.");
+            return;
+        }
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            log.warn("No user email; skipping SSL monitor expiry email. monitor={}", monitor.getId());
+            return;
+        }
+
+        String subject = "APIWatch: SSL certificate issue for " + safe(monitor.getName());
+        String expiryLine;
+        if (errorMessage != null) {
+            expiryLine = "TLS error: " + safe(errorMessage);
+        } else if (daysLeft < 0) {
+            expiryLine = "Certificate has EXPIRED.";
+        } else {
+            expiryLine = "Expires in " + daysLeft + " day(s).";
+        }
+
+        String body = ""
+                + "Hi " + safe(user.getName() != null ? user.getName() : "there") + ",\n\n"
+                + "APIWatch detected an SSL certificate issue.\n\n"
+                + "Monitor: " + safe(monitor.getName()) + "\n"
+                + "Domain: " + safe(monitor.getDomain()) + ":" + monitor.getPort() + "\n"
+                + "Status: " + expiryLine + "\n"
+                + "Alert threshold: " + monitor.getAlertDaysThreshold() + " days\n\n"
+                + "Action required: renew the SSL certificate or investigate the TLS error.\n\n"
+                + "Dashboard: " + baseUrl + "/dashboard\n\n"
+                + "— APIWatch\n";
+
+        sendEmail(user.getEmail(), subject, body);
+        log.info("SSL monitor expiry email sent to {} for monitor {}", user.getEmail(), monitor.getId());
+    }
+
+    public void sendSslMonitorRecoveryEmail(User user, SslMonitor monitor, Incident incident) {
+        if (!enabled) {
+            log.debug("Email disabled; skipping SSL monitor recovery email.");
+            return;
+        }
+        if (smtp2goApiKey == null || smtp2goApiKey.isBlank()) {
+            log.warn("SMTP2GO_API_KEY not set; skipping SSL monitor recovery email.");
+            return;
+        }
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            log.warn("No user email; skipping SSL monitor recovery email. monitor={}", monitor.getId());
+            return;
+        }
+
+        String subject = "APIWatch: SSL certificate healthy for " + safe(monitor.getName());
+        String incidentId = incident != null && incident.getId() != null ? String.valueOf(incident.getId()) : "—";
+        String downtime = incident != null && incident.getDowntimeDurationMinutes() != null
+                ? incident.getDowntimeDurationMinutes() + " minutes"
+                : "—";
+
+        String body = ""
+                + "Hi " + safe(user.getName() != null ? user.getName() : "there") + ",\n\n"
+                + "Good news — the SSL certificate for one of your monitored domains is now healthy.\n\n"
+                + "Monitor: " + safe(monitor.getName()) + "\n"
+                + "Domain: " + safe(monitor.getDomain()) + ":" + monitor.getPort() + "\n"
+                + "Incident ID: " + incidentId + "\n"
+                + "Issue duration: " + downtime + "\n\n"
+                + "Dashboard: " + baseUrl + "/dashboard\n\n"
+                + "— APIWatch\n";
+
+        sendEmail(user.getEmail(), subject, body);
+        log.info("SSL monitor recovery email sent to {} for monitor {}", user.getEmail(), monitor.getId());
     }
 
     public void sendContactEmail(String fromName, String fromEmail, String subject, String message) {

@@ -56,6 +56,11 @@ public class Incident {
     @JoinColumn(name = "heartbeat_monitor_id")
     private HeartbeatMonitor heartbeatMonitor;
 
+    /** For SSL auto-incidents: which SSL monitor triggered this. */
+    @ManyToOne
+    @JoinColumn(name = "ssl_monitor_id")
+    private SslMonitor sslMonitor;
+
     /** Auto-incident: e.g. "Timeout", "HTTP 5xx", "DNS failure", "Connection refused", "Heartbeat missed". */
     @Column(name = "failure_reason", length = 255)
     private String failureReason;

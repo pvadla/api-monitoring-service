@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Lock } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx'
@@ -114,30 +114,90 @@ export function PublicStatusPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.endpoints.length === 0 ? (
+                  {data.endpoints.length === 0 && (data.sslMonitors?.length ?? 0) === 0 ? (
                     <TableRow>
                       <TableCell colSpan={2} className="text-muted-foreground py-10 text-center text-sm">
                         No components on this page yet.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    data.endpoints.map((ep) => (
-                      <TableRow key={ep.id}>
-                        <TableCell className="font-medium">{ep.name}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              ep.isUp
-                                ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                                : 'border-red-500/40 text-red-700 dark:text-red-300',
-                            )}
-                          >
-                            {ep.isUp ? 'Operational' : 'Outage'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    <>
+                      {data.endpoints.map((ep) => (
+                        <TableRow key={`ep-${ep.id}`}>
+                          <TableCell className="font-medium">{ep.name}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                ep.isUp
+                                  ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                                  : 'border-red-500/40 text-red-700 dark:text-red-300',
+                              )}
+                            >
+                              {ep.isUp ? 'Operational' : 'Outage'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {(data.sslMonitors ?? []).map((s) => {
+                        const daysLeft = s.sslExpiresAt
+                          ? Math.ceil(
+                              (new Date(s.sslExpiresAt).getTime() - Date.now()) / 86_400_000,
+                            )
+                          : null
+                        const statusLabel =
+                          s.isUp === null
+                            ? 'Pending'
+                            : s.isUp
+                              ? 'Valid'
+                              : daysLeft !== null && daysLeft < 0
+                                ? 'Expired'
+                                : 'Expiring Soon'
+                        return (
+                          <TableRow key={`ssl-${s.id}`}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Lock className="text-muted-foreground size-3.5 shrink-0" />
+                                <div>
+                                  <span className="font-medium">{s.name}</span>
+                                  <p className="text-muted-foreground mt-0.5 text-xs">
+                                    {s.domain}{s.port !== 443 ? `:${s.port}` : ''}
+                                    {daysLeft !== null && (
+                                      <span
+                                        className={cn(
+                                          'ml-2',
+                                          daysLeft < 0
+                                            ? 'text-red-400'
+                                            : daysLeft <= s.alertDaysThreshold
+                                              ? 'text-amber-400'
+                                              : '',
+                                        )}
+                                      >
+                                        {daysLeft < 0 ? 'Expired' : `${daysLeft}d left`}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  s.isUp === null
+                                    ? 'border-muted-foreground/40 text-muted-foreground'
+                                    : s.isUp
+                                      ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                                      : 'border-amber-500/40 text-amber-700 dark:text-amber-300',
+                                )}
+                              >
+                                {statusLabel}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </>
                   )}
                 </TableBody>
               </Table>

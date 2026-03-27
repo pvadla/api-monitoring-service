@@ -1,6 +1,6 @@
 /** Mirrors backend JSON for Phase 3–5 APIs. */
 
-import type { EndpointRow } from '@/types/dashboard.ts'
+import type { EndpointRow, SslMonitorRow } from '@/types/dashboard.ts'
 
 export type EndpointDetailPayload = {
   endpoint: EndpointRow
@@ -57,5 +57,6 @@ export type PublicStatusPayload = {
   overallStatusLabel: string
   statusKind: string
   endpoints: EndpointRow[]
+  sslMonitors: SslMonitorRow[]
   incidents: IncidentDto[]
 }

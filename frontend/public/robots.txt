@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /endpoints/
+Disallow: /heartbeats/
+Disallow: /incidents
+Disallow: /settings/
+
+Sitemap: https://apiwatch.app/sitemap.xml

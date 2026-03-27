@@ -14,15 +14,19 @@ import org.springframework.web.bind.annotation.RestController;
 import com.api.monitor.api.dto.DashboardResponse;
 import com.api.monitor.api.dto.EndpointResponse;
 import com.api.monitor.api.dto.HeartbeatMonitorResponse;
+import com.api.monitor.api.dto.SslMonitorResponse;
 import com.api.monitor.api.dto.UserResponse;
 import com.api.monitor.entity.Endpoint;
 import com.api.monitor.entity.HeartbeatMonitor;
+import com.api.monitor.entity.SslMonitor;
 import com.api.monitor.entity.User;
 import com.api.monitor.repository.EndpointCheckRepository;
 import com.api.monitor.repository.EndpointRepository;
 import com.api.monitor.repository.HeartbeatCheckRepository;
 import com.api.monitor.repository.HeartbeatMonitorRepository;
 import com.api.monitor.repository.IncidentRepository;
+import com.api.monitor.repository.SslCheckRepository;
+import com.api.monitor.repository.SslMonitorRepository;
 import com.api.monitor.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -37,6 +41,8 @@ public class DashboardApiController {
     private final EndpointCheckRepository endpointCheckRepository;
     private final HeartbeatMonitorRepository heartbeatMonitorRepository;
     private final HeartbeatCheckRepository heartbeatCheckRepository;
+    private final SslMonitorRepository sslMonitorRepository;
+    private final SslCheckRepository sslCheckRepository;
     private final IncidentRepository incidentRepository;
 
     @Value("${apiwatch.app.base-url:http://localhost:8080}")
@@ -62,6 +68,7 @@ public class DashboardApiController {
 
         List<Endpoint> endpoints = endpointRepository.findByUser(user);
         List<HeartbeatMonitor> heartbeats = heartbeatMonitorRepository.findByUser(user);
+        List<SslMonitor> sslMonitors = sslMonitorRepository.findByUser(user);
 
         String flashSuccess = null;
         if ("success".equals(subscription)) {
@@ -86,6 +93,12 @@ public class DashboardApiController {
                                 hb,
                                 HeartbeatMonitorResponse.recentChecksUpFromRows(
                                         heartbeatCheckRepository.findTop15ByHeartbeatMonitorOrderByCheckedAtDesc(hb))))
+                        .toList(),
+                sslMonitors.stream()
+                        .map(m -> SslMonitorResponse.fromEntity(
+                                m,
+                                SslMonitorResponse.recentChecksUpFromRows(
+                                        sslCheckRepository.findTop15BySslMonitorOrderByCheckedAtDesc(m))))
                         .toList(),
                 baseUrl,
                 flashSuccess,

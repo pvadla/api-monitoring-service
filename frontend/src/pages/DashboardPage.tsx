@@ -9,6 +9,7 @@ import {
   Copy,
   ExternalLink,
   Info,
+  Lock,
   Pause,
   Pencil,
   Play,
@@ -46,7 +47,7 @@ import {
 import { apiFetch, apiJson, parseApiErrorBody } from '@/lib/apiClient.ts'
 import { formatShortDate } from '@/lib/format.ts'
 import { cn } from '@/lib/utils.ts'
-import type { DashboardPayload, EndpointRow, MonitorTypeFilter } from '@/types/dashboard.ts'
+import type { DashboardPayload, EndpointRow, MonitorTypeFilter, SslMonitorRow } from '@/types/dashboard.ts'
 
 // ─── query helpers ────────────────────────────────────────────────────────────
 
@@ -63,11 +64,12 @@ async function fetchDashboard(subscription: string | null): Promise<DashboardPay
 
 function SystemStatusPill({ data }: { data: DashboardPayload | undefined }) {
   if (!data) return null
-  const total = data.endpoints.length + data.heartbeats.length
+  const total = data.endpoints.length + data.heartbeats.length + (data.sslMonitors?.length ?? 0)
   if (total === 0) return null
   const hasDown =
     data.endpoints.some((e) => !e.isUp) ||
-    data.heartbeats.some((h) => h.isUp === false)
+    data.heartbeats.some((h) => h.isUp === false) ||
+    (data.sslMonitors ?? []).some((s) => s.isUp === false)
   const hasIncidents = (data.openIncidentCount ?? 0) > 0
   if (hasDown || hasIncidents) {
     return (
@@ -88,13 +90,19 @@ function SystemStatusPill({ data }: { data: DashboardPayload | undefined }) {
 // ─── summary pills ────────────────────────────────────────────────────────────
 
 function SummaryPills({ data }: { data: DashboardPayload }) {
-  const total = data.endpoints.length + data.heartbeats.length
+  const sslMonitors = data.sslMonitors ?? []
+  const total = data.endpoints.length + data.heartbeats.length + sslMonitors.length
   const up =
     data.endpoints.filter((e) => e.isUp).length +
-    data.heartbeats.filter((h) => h.isUp === true).length
+    data.heartbeats.filter((h) => h.isUp === true).length +
+    sslMonitors.filter((s) => s.isUp === true).length
   const down =
     data.endpoints.filter((e) => !e.isUp).length +
-    data.heartbeats.filter((h) => h.isUp === false).length
+    data.heartbeats.filter((h) => h.isUp === false).length +
+    sslMonitors.filter((s) => s.isUp === false).length
+  const pending =
+    data.heartbeats.filter((h) => h.isUp === null).length +
+    sslMonitors.filter((s) => s.isUp === null).length
   const incidents = data.openIncidentCount ?? 0
 
   return (
@@ -108,6 +116,12 @@ function SummaryPills({ data }: { data: DashboardPayload }) {
         <>
           <span className="text-muted-foreground/40">·</span>
           <span className="font-medium tabular-nums text-red-400">{down} down</span>
+        </>
+      )}
+      {pending > 0 && (
+        <>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="text-muted-foreground font-medium tabular-nums">{pending} pending</span>
         </>
       )}
       {incidents > 0 && (
@@ -127,9 +141,11 @@ function SummaryPills({ data }: { data: DashboardPayload }) {
 function IssueBanner({ data }: { data: DashboardPayload }) {
   const downEndpoints = data.endpoints.filter((e) => !e.isUp)
   const downHeartbeats = data.heartbeats.filter((h) => h.isUp === false)
+  const downSsl = (data.sslMonitors ?? []).filter((s) => s.isUp === false)
   const incidents = data.openIncidentCount ?? 0
+  const totalDown = downEndpoints.length + downHeartbeats.length + downSsl.length
 
-  if (downEndpoints.length === 0 && downHeartbeats.length === 0 && incidents === 0) return null
+  if (totalDown === 0 && incidents === 0) return null
 
   return (
     <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
@@ -137,7 +153,7 @@ function IssueBanner({ data }: { data: DashboardPayload }) {
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-400" />
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm font-medium text-red-300">
-            {downEndpoints.length + downHeartbeats.length} monitor{downEndpoints.length + downHeartbeats.length !== 1 ? 's' : ''} currently down
+            {totalDown} monitor{totalDown !== 1 ? 's' : ''} currently down
             {incidents > 0 && ` · ${incidents} open incident${incidents !== 1 ? 's' : ''}`}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -158,6 +174,15 @@ function IssueBanner({ data }: { data: DashboardPayload }) {
               >
                 <span className="size-1.5 rounded-full bg-red-400" />
                 {hb.name}
+              </span>
+            ))}
+            {downSsl.map((s) => (
+              <span
+                key={s.id}
+                className="inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300"
+              >
+                <Lock className="size-3" />
+                {s.name}
               </span>
             ))}
             {incidents > 0 && (
@@ -202,9 +227,10 @@ export function DashboardPage() {
     if (!data) return []
     const endpoints = data.endpoints.map((ep) => ({ kind: 'endpoint' as const, ep }))
     const heartbeats = data.heartbeats.map((hb) => ({ kind: 'heartbeat' as const, hb }))
-    const merged = [...endpoints, ...heartbeats].sort((a, b) => {
-      const na = a.kind === 'endpoint' ? a.ep.name : a.hb.name
-      const nb = b.kind === 'endpoint' ? b.ep.name : b.hb.name
+    const sslMonitors = (data.sslMonitors ?? []).map((s) => ({ kind: 'ssl' as const, s }))
+    const merged = [...endpoints, ...heartbeats, ...sslMonitors].sort((a, b) => {
+      const na = a.kind === 'endpoint' ? a.ep.name : a.kind === 'heartbeat' ? a.hb.name : a.s.name
+      const nb = b.kind === 'endpoint' ? b.ep.name : b.kind === 'heartbeat' ? b.hb.name : b.s.name
       return na.localeCompare(nb, undefined, { sensitivity: 'base' })
     })
     if (monitorTypeFilter === 'all') return merged
@@ -215,19 +241,32 @@ export function DashboardPage() {
     if (!data) return null
     const ep = data.endpoints
     const hb = data.heartbeats
+    const ssl = data.sslMonitors ?? []
     const httpCount = ep.length
     const hbCount = hb.length
+    const sslCount = ssl.length
     const httpUp = ep.filter((e) => e.isUp).length
     const httpDown = ep.filter((e) => e.isUp === false).length
     const hbUp = hb.filter((h) => h.isUp === true).length
     const hbDown = hb.filter((h) => h.isUp === false).length
     const hbPending = hb.filter((h) => h.isUp === null).length
+    const sslUp = ssl.filter((s) => s.isUp === true).length
+    const sslDown = ssl.filter((s) => s.isUp === false).length
+    const sslPending = ssl.filter((s) => s.isUp === null).length
     const httpSuccessPct = httpCount ? Math.round((httpUp / httpCount) * 100) : 0
-    const hbSuccessPct = hbCount ? Math.round((hbUp / hbCount) * 100) : 0
+    const hbResolved = hbUp + hbDown
+    const hbSuccessPct: number | null =
+      hbResolved > 0 ? Math.round((hbUp / hbResolved) * 100) : hbPending > 0 ? null : 0
+    const sslResolved = sslUp + sslDown
+    const sslSuccessPct: number | null =
+      sslResolved > 0 ? Math.round((sslUp / sslResolved) * 100) : sslPending > 0 ? null : 0
+    const totalPending = hbPending + sslPending
     return {
       httpCount, httpUp, httpDown,
       hbCount, hbUp, hbDown, hbPending,
-      httpSuccessPct, hbSuccessPct,
+      sslCount, sslUp, sslDown, sslPending,
+      httpSuccessPct, hbSuccessPct, sslSuccessPct,
+      totalPending,
       openIncidentCount: data.openIncidentCount ?? 0,
     }
   }, [data])
@@ -261,6 +300,19 @@ export function DashboardPage() {
       if (r.ok) {
         await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         await queryClient.invalidateQueries({ queryKey: ['me'] })
+      }
+    },
+  })
+
+  const deleteSslMutation = useMutation({
+    mutationFn: (id: number) => apiFetch(`/api/ssl-monitors/${id}`, { method: 'DELETE' }),
+    onSuccess: async (r) => {
+      if (r.ok) {
+        await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        await queryClient.invalidateQueries({ queryKey: ['me'] })
+      } else {
+        const msg = await parseApiErrorBody(r).catch(() => `HTTP ${r.status}`)
+        window.alert(`Could not delete SSL monitor: ${msg}`)
       }
     },
   })
@@ -375,6 +427,7 @@ export function DashboardPage() {
                     <SelectItem value="all">All types</SelectItem>
                     <SelectItem value="endpoint">HTTP / Endpoint</SelectItem>
                     <SelectItem value="heartbeat">Heartbeat</SelectItem>
+                    <SelectItem value="ssl">SSL Certificate</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -399,7 +452,9 @@ export function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.endpoints.length === 0 && data.heartbeats.length === 0 ? (
+                    {data.endpoints.length === 0 &&
+                    data.heartbeats.length === 0 &&
+                    (data.sslMonitors?.length ?? 0) === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-muted-foreground py-16 text-center text-sm">
                           <div className="flex flex-col items-center gap-3">
@@ -407,7 +462,7 @@ export function DashboardPage() {
                             <div>
                               <p className="font-medium">No monitors yet</p>
                               <p className="text-muted-foreground/70 mt-1 text-xs">
-                                Add an HTTP endpoint to check uptime, or a heartbeat URL for cron jobs.
+                                Add an HTTP endpoint, a heartbeat URL, or an SSL certificate monitor.
                               </p>
                             </div>
                             <Button size="sm" className="gap-2" onClick={() => setAddOpen(true)}>
@@ -536,6 +591,7 @@ export function DashboardPage() {
                             </TableRow>
                           )
                         }
+                        if (row.kind === 'heartbeat') {
                         const hb = row.hb
                         const pingUrl = `${data.baseUrl.replace(/\/$/, '')}/heartbeat/${hb.token}`
                         return (
@@ -602,6 +658,83 @@ export function DashboardPage() {
                             </TableCell>
                           </TableRow>
                         )
+                        }
+                        // ── SSL certificate monitor row ──────────────────
+                        const s: SslMonitorRow = row.s
+                        const daysLeft = s.sslExpiresAt
+                          ? Math.ceil((new Date(s.sslExpiresAt).getTime() - Date.now()) / 86_400_000)
+                          : null
+                        return (
+                          <TableRow
+                            key={`ssl-${s.id}`}
+                            className={cn(s.isUp === false && 'bg-amber-500/[0.04]')}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={cn(
+                                    'size-1.5 shrink-0 rounded-full',
+                                    s.isUp === true && 'bg-emerald-400',
+                                    s.isUp === false && 'animate-pulse bg-amber-400',
+                                    s.isUp === null && 'bg-muted-foreground/40',
+                                  )}
+                                />
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500/40 bg-amber-500/10 font-medium text-amber-800 dark:text-amber-300"
+                                >
+                                  SSL
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-middle">
+                              <CheckSparkline checks={s.recentChecksUp} />
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              <span className="inline-flex items-center gap-1.5">
+                                <Lock className="text-muted-foreground size-3.5 shrink-0" />
+                                {s.name}
+                              </span>
+                            </TableCell>
+                            <TableCell className="max-w-[min(320px,45vw)]">
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-foreground/90 text-sm font-medium">
+                                  {s.domain}{s.port !== 443 ? `:${s.port}` : ''}
+                                </span>
+                                <div className="text-muted-foreground flex flex-col gap-0.5 text-xs leading-snug sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-0.5">
+                                  {daysLeft !== null && daysLeft !== undefined ? (
+                                    <span className={cn(
+                                      (daysLeft as number) < 0 ? 'text-red-400' :
+                                      (daysLeft as number) <= s.alertDaysThreshold ? 'text-amber-400' : '',
+                                    )}>
+                                      {(daysLeft as number) < 0 ? 'Expired' : `${daysLeft}d left`}
+                                    </span>
+                                  ) : (
+                                    <span>Not yet checked</span>
+                                  )}
+                                  <span>Alert at {s.alertDaysThreshold}d</span>
+                                  <span>{formatShortDate(s.lastCheckedAt)}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-destructive size-8"
+                                title="Delete"
+                                disabled={deleteSslMutation.isPending}
+                                onClick={() => {
+                                  if (window.confirm('Delete this SSL monitor? This cannot be undone.')) {
+                                    deleteSslMutation.mutate(s.id)
+                                  }
+                                }}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
                       })
                     )}
                   </TableBody>
@@ -611,7 +744,7 @@ export function DashboardPage() {
           </div>
 
           {/* right: monitor health chart */}
-          {monitorTypeStats && monitorTypeStats.httpCount + monitorTypeStats.hbCount > 0 ? (
+          {monitorTypeStats && monitorTypeStats.httpCount + monitorTypeStats.hbCount + monitorTypeStats.sslCount > 0 ? (
             <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
               <MonitorTypePieChart
                 httpCount={monitorTypeStats.httpCount}
@@ -621,8 +754,13 @@ export function DashboardPage() {
                 heartbeatUp={monitorTypeStats.hbUp}
                 heartbeatDown={monitorTypeStats.hbDown}
                 heartbeatPending={monitorTypeStats.hbPending}
+                sslCount={monitorTypeStats.sslCount}
+                sslUp={monitorTypeStats.sslUp}
+                sslDown={monitorTypeStats.sslDown}
+                sslPending={monitorTypeStats.sslPending}
                 httpSuccessPct={monitorTypeStats.httpSuccessPct}
                 heartbeatSuccessPct={monitorTypeStats.hbSuccessPct}
+                sslSuccessPct={monitorTypeStats.sslSuccessPct}
                 openIncidentCount={monitorTypeStats.openIncidentCount}
               />
             </div>

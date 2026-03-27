@@ -12,5 +12,6 @@ public record PublicStatusResponse(
         String overallStatusLabel,
         String statusKind,
         List<EndpointResponse> endpoints,
+        List<SslMonitorResponse> sslMonitors,
         List<IncidentResponse> incidents
 ) {}
